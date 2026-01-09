@@ -2,7 +2,7 @@
 /**
  * The template for displaying an admin notice.
  *
- * @version 2.3.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.3.0
  * @var WCS_Admin_Notice $notice
  */
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,6 +24,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php endif; ?>
 
 	<?php if ( $notice->is_dismissible() ) : ?>
-		<a href="<?php echo esc_url( $notice->print_dismiss_url() ); ?>" type="button" class="notice-dismiss" style="text-decoration: none;"></a>
+		<a href="<?php $notice->print_dismiss_url(); ?>" type="button" class="notice-dismiss" style="text-decoration: none;"></a>
 	<?php endif; ?>
 </div>

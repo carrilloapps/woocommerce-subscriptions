@@ -4,7 +4,7 @@
  *
  * @author  Prospress
  * @package WooCommerce-Subscriptions/Templates
- * @version 2.6.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.6.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -16,16 +16,29 @@ $user_id        = get_current_user_id();
 
 do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 
-<form class="variations_form cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype='multipart/form-data' data-product_id="<?php echo absint( $product->get_id() ); ?>" data-product_variations="<?php echo htmlspecialchars( wcs_json_encode( $available_variations ) ) ?>">
+<form class="variations_form cart" action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>" method="post" enctype='multipart/form-data' data-product_id="<?php echo absint( $product->get_id() ); ?>" data-product_variations="<?php echo esc_attr( htmlspecialchars( wcs_json_encode( $available_variations ), ENT_COMPAT | ENT_HTML401 ) ); ?>">
 	<?php do_action( 'woocommerce_before_variations_form' ); ?>
 
 	<?php if ( empty( $available_variations ) && false !== $available_variations ) : ?>
 		<p class="stock out-of-stock"><?php esc_html_e( 'This product is currently out of stock and unavailable.', 'woocommerce-subscriptions' ); ?></p>
 	<?php else : ?>
 		<?php if ( ! $product->is_purchasable() && 0 !== $user_id && 'no' !== wcs_get_product_limitation( $product ) && wcs_is_product_limited_for_user( $product, $user_id ) ) : ?>
-			<?php $resubscribe_link = wcs_get_users_resubscribe_link_for_product( $product->get_id() ); ?>
-			<?php if ( ! empty( $resubscribe_link ) && 'any' === wcs_get_product_limitation( $product ) && wcs_user_has_subscription( $user_id, $product->get_id(), wcs_get_product_limitation( $product ) ) && ! wcs_user_has_subscription( $user_id, $product->get_id(), 'active' ) && ! wcs_user_has_subscription( $user_id, $product->get_id(), 'on-hold' ) ) : // customer has an inactive subscription, maybe offer the renewal button. ?>
-				<a href="<?php echo esc_url( $resubscribe_link ); ?>" class="woocommerce-button button product-resubscribe-link"><?php esc_html_e( 'Resubscribe', 'woocommerce-subscriptions' ); ?></a>
+			<?php
+			if ( 'any' === wcs_get_product_limitation( $product )
+				&& wcs_user_has_subscription( $user_id, $product->get_id() )
+				&& ! wcs_user_has_subscription( $user_id, $product->get_id(), 'active' )
+				&& ! wcs_user_has_subscription( $user_id, $product->get_id(), 'on-hold' )
+			) :
+				?>
+				<?php
+				$reactivate_link  = wcs_get_user_reactivate_link_for_product( $user_id, $product );
+				$resubscribe_link = wcs_get_users_resubscribe_link_for_product( $product->get_id() );
+				?>
+				<?php if ( ! empty( $reactivate_link ) ) : // customer has a pending cancellation subscription, maybe offer the reactivate button. ?>
+					<a href="<?php echo esc_url( $reactivate_link ); ?>" class="button product-resubscribe-link<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php esc_html_e( 'Reactivate', 'woocommerce-subscriptions' ); ?></a>
+				<?php elseif ( ! empty( $resubscribe_link ) ) : // customer has an inactive subscription, maybe offer the renewal button. ?>
+					<a href="<?php echo esc_url( $resubscribe_link ); ?>" class="woocommerce-button button product-resubscribe-link<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php esc_html_e( 'Resubscribe', 'woocommerce-subscriptions' ); ?></a>
+				<?php endif; ?>
 			<?php else : ?>
 				<p class="limited-subscription-notice notice"><?php esc_html_e( 'You have an active subscription to this product already.', 'woocommerce-subscriptions' ); ?></p>
 			<?php endif; ?>
@@ -37,7 +50,7 @@ do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 				<tbody>
 				<?php foreach ( $attributes as $attribute_name => $options ) : ?>
 					<tr>
-						<td class="label"><label for="<?php echo esc_attr( sanitize_title( $attribute_name ) ); ?>"><?php echo wc_attribute_label( $attribute_name ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped */ ?></label></td>
+						<td class="label"><label for="<?php echo esc_attr( sanitize_title( $attribute_name ) ); ?>"><?php echo wp_kses_post( wc_attribute_label( $attribute_name ) ); ?></label></td>
 						<td class="value">
 							<?php
 							$selected = isset( $_REQUEST[ 'attribute_' . sanitize_title( $attribute_name ) ] ) ? wc_clean( $_REQUEST[ 'attribute_' . sanitize_title( $attribute_name ) ] ) : $product->get_variation_default_attribute( $attribute_name );
@@ -54,7 +67,7 @@ do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 			/**
 			 * Post WC 3.4 the woocommerce_before_add_to_cart_button hook is triggered by the callback @see woocommerce_single_variation_add_to_cart_button() hooked onto woocommerce_single_variation.
 			 */
-			if ( WC_Subscriptions::is_woocommerce_pre( '3.4' ) ) {
+			if ( wcs_is_woocommerce_pre( '3.4' ) ) {
 				do_action( 'woocommerce_before_add_to_cart_button' );
 			}
 			?>
@@ -69,7 +82,7 @@ do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 				/**
 				 * woocommerce_single_variation hook. Used to output the cart button and placeholder for variation data.
 				 *
-				 * @since  2.4.0
+				 * @since  1.0.0 - Migrated from WooCommerce Subscriptions v2.4.0
 				 * @hooked woocommerce_single_variation - 10 Empty div for variation data.
 				 * @hooked woocommerce_single_variation_add_to_cart_button - 20 Qty and cart button.
 				 */
@@ -86,7 +99,7 @@ do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 			/**
 			 * Post WC 3.4 the woocommerce_after_add_to_cart_button hook is triggered by the callback @see woocommerce_single_variation_add_to_cart_button() hooked onto woocommerce_single_variation.
 			 */
-			if ( WC_Subscriptions::is_woocommerce_pre( '3.4' ) ) {
+			if ( wcs_is_woocommerce_pre( '3.4' ) ) {
 				do_action( 'woocommerce_after_add_to_cart_button' );
 			}
 			?>

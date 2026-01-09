@@ -4,24 +4,24 @@
  *
  * @author  Brent Shepherd
  * @package WooCommerce_Subscriptions/Templates/Emails/Plain
- * @version 2.6.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.6.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-echo $email_heading . "\n\n";
+echo esc_html( $email_heading ) . "\n\n";
 
 $count = count( $subscriptions );
 
 // translators: $1: customer's first name and last name, $2: how many subscriptions customer switched
-printf( _nx( 'Customer %1$s has switched their subscription. The details of their new subscription are as follows:', 'Customer %1$s has switched %2$d of their subscriptions. The details of their new subscriptions are as follows:', $count, 'Used in switch notification admin email', 'woocommerce-subscriptions' ), $order->get_formatted_billing_full_name(), $count );
+printf( esc_html( _nx( 'Customer %1$s has switched their subscription. The details of their new subscription are as follows:', 'Customer %1$s has switched %2$d of their subscriptions. The details of their new subscriptions are as follows:', $count, 'Used in switch notification admin email', 'woocommerce-subscriptions' ) ), esc_html( $order->get_formatted_billing_full_name() ), esc_html( $count ) );
 
 echo "\n\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 
 /**
  * @hooked WC_Subscriptions_Email::order_details() Shows the order details table.
- * @since 2.1.0
+ * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.1.0
  */
 do_action( 'woocommerce_subscriptions_email_order_details', $order, $sent_to_admin, $plain_text, $email );
 
@@ -50,4 +50,4 @@ if ( $additional_content ) {
 	echo "\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 }
 
-echo apply_filters( 'woocommerce_email_footer_text', get_option( 'woocommerce_email_footer_text' ) );
+echo wp_kses_post( apply_filters( 'woocommerce_email_footer_text', get_option( 'woocommerce_email_footer_text' ) ) );

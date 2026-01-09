@@ -40,7 +40,7 @@ class WCS_Webhooks {
 
 		add_action( 'woocommerce_subscriptions_switch_completed', __CLASS__ . '::add_subscription_switched_callback', 10, 1 );
 
-		add_filter( 'woocommerce_webhook_topics' , __CLASS__ . '::add_topics_admin_menu', 10, 1 );
+		add_filter( 'woocommerce_webhook_topics', __CLASS__ . '::add_topics_admin_menu', 10, 1 );
 
 		add_filter( 'wcs_new_order_created', __CLASS__ . '::add_subscription_created_order_callback', 10, 1 );
 
@@ -49,7 +49,7 @@ class WCS_Webhooks {
 	/**
 	 * Trigger `order.create` every time an order is created by Subscriptions.
 	 *
-	 * @param WC_Order $order	WC_Order Object
+	 * @param WC_Order $order WC_Order Object
 	 */
 	public static function add_subscription_created_order_callback( $order ) {
 
@@ -73,18 +73,16 @@ class WCS_Webhooks {
 
 			case 'subscription':
 				$topic_hooks = apply_filters( 'woocommerce_subscriptions_webhook_topics', array(
-					'subscription.created' => array(
+					'subscription.created'  => array(
 						'wcs_api_subscription_created',
 						'wcs_webhook_subscription_created',
 						'woocommerce_process_shop_subscription_meta',
 					),
-					'subscription.updated' => array(
-						'wcs_api_subscription_updated',
-						'woocommerce_subscription_status_changed',
+					'subscription.updated'  => array(
 						'wcs_webhook_subscription_updated',
-						'woocommerce_process_shop_subscription_meta',
+						'woocommerce_update_subscription',
 					),
-					'subscription.deleted' => array(
+					'subscription.deleted'  => array(
 						'woocommerce_subscription_trashed',
 						'woocommerce_subscription_deleted',
 						'woocommerce_api_delete_subscription',
@@ -107,10 +105,10 @@ class WCS_Webhooks {
 	public static function add_topics_admin_menu( $topics ) {
 
 		$front_end_topics = array(
-			'subscription.created'  => __( ' Subscription Created', 'woocommerce-subscriptions' ),
-			'subscription.updated'  => __( ' Subscription Updated', 'woocommerce-subscriptions' ),
-			'subscription.deleted'  => __( ' Subscription Deleted', 'woocommerce-subscriptions' ),
-			'subscription.switched' => __( ' Subscription Switched', 'woocommerce-subscriptions' ),
+			'subscription.created'  => __( ' Subscription created', 'woocommerce-subscriptions' ),
+			'subscription.updated'  => __( ' Subscription updated', 'woocommerce-subscriptions' ),
+			'subscription.deleted'  => __( ' Subscription deleted', 'woocommerce-subscriptions' ),
+			'subscription.switched' => __( ' Subscription switched', 'woocommerce-subscriptions' ),
 		);
 
 		return array_merge( $topics, $front_end_topics );
@@ -125,30 +123,43 @@ class WCS_Webhooks {
 
 		if ( 'subscription' == $resource && empty( $payload ) && wcs_is_subscription( $resource_id ) ) {
 			$webhook      = new WC_Webhook( $id );
-			$event        = $webhook->get_event();
 			$current_user = get_current_user_id();
 
-			wp_set_current_user( $webhook->get_user_id() );
+			// Build the payload with the same user context as the user who created
+			// the webhook -- this avoids permission errors as background processing
+			// runs with no user context.
+			wp_set_current_user( $webhook->get_user_id() ); // phpcs:ignore Generic.PHP.ForbiddenFunctions.Discouraged -- user ID can only be provided by WC_Webhook::get_user_id() which is the webhook author's ID.
 
-			$webhook_api_version = ( method_exists( $webhook, 'get_api_version' ) ) ? $webhook->get_api_version() : 'legacy_v3';
-
-			switch ( $webhook_api_version ) {
+			switch ( $webhook->get_api_version() ) {
 				case 'legacy_v3':
+
+					// @phpstan-ignore-next-line Ignore legacy referencies.
+					if ( is_null( wc()->api ) ) {
+						throw new \Exception( 'The Legacy REST API plugin is not installed on this site. More information: https://developer.woocommerce.com/2023/10/03/the-legacy-rest-api-will-move-to-a-dedicated-extension-in-woocommerce-9-0/ ' );
+					}
+
 					WC()->api->WC_API_Subscriptions->register_routes( array() );
 					$payload = WC()->api->WC_API_Subscriptions->get_subscription( $resource_id );
 					break;
 				case 'wp_api_v1':
 				case 'wp_api_v2':
+					// There is no v2 subscritpion endpoint support so they fall back to v1.
 					$request    = new WP_REST_Request( 'GET' );
-					$controller = new WC_REST_Subscriptions_Controller;
+					// @phpstan-ignore class.nameCase
+					$controller = new WC_REST_Subscriptions_v1_Controller();
 
 					$request->set_param( 'id', $resource_id );
 					$result  = $controller->get_item( $request );
 					$payload = isset( $result->data ) ? $result->data : array();
+
+					break;
+				case 'wp_api_v3':
+					$payload = WCS_API::get_wc_api_endpoint_data( "/wc/v3/subscriptions/{$resource_id}" );
 					break;
 			}
 
-			wp_set_current_user( $current_user );
+			// Restore the current user.
+			wp_set_current_user( $current_user ); // phpcs:ignore Generic.PHP.ForbiddenFunctions.Discouraged -- this ID was provided by get_current_user_id() above.
 		}
 
 		return $payload;

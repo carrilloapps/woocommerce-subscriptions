@@ -4,16 +4,16 @@
  *
  * @author  Brent Shepherd
  * @package WooCommerce_Subscriptions/Templates/Emails/Plain
- * @version 2.6.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.6.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-echo $email_heading . "\n\n";
+echo esc_html( $email_heading ) . "\n\n";
 
 // translators: $1: customer's billing first name and last name
-printf( _x( 'You have received a subscription renewal order from %1$s. Their order is as follows:', 'Used in admin email: new renewal order', 'woocommerce-subscriptions' ), $order->get_formatted_billing_full_name() );
+printf( esc_html_x( 'You have received a subscription renewal order from %1$s. Their order is as follows:', 'Used in admin email: new renewal order', 'woocommerce-subscriptions' ), esc_html( $order->get_formatted_billing_full_name() ) );
 
 echo "\n\n";
 
@@ -21,7 +21,7 @@ echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n"
 
 /**
  * @hooked WC_Subscriptions_Email::order_details() Shows the order details table.
- * @since 2.1.0
+ * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.1.0
  */
 do_action( 'woocommerce_subscriptions_email_order_details', $order, $sent_to_admin, $plain_text, $email );
 
@@ -41,4 +41,4 @@ if ( $additional_content ) {
 	echo "\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 }
 
-echo apply_filters( 'woocommerce_email_footer_text', get_option( 'woocommerce_email_footer_text' ) );
+echo wp_kses_post( apply_filters( 'woocommerce_email_footer_text', get_option( 'woocommerce_email_footer_text' ) ) );

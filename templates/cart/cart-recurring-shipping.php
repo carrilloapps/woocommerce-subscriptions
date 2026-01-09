@@ -6,7 +6,7 @@
  *
  * @author  Prospress
  * @package WooCommerce Subscriptions/Templates
- * @version 2.6.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 
 		<?php if ( $show_package_details ) : ?>
-			<?php echo '<p class="woocommerce-shipping-contents"><small>' . esc_html( $package_details ) . '</small></p>'; ?>
+			<?php echo '<p class="woocommerce-shipping-contents"><small>' . wp_kses_post( $package_details ) . '</small></p>'; ?>
 		<?php endif; ?>
 	</td>
 </tr>

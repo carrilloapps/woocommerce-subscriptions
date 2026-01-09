@@ -17,6 +17,8 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 
 	public $order_ids_recurring_totals = null;
 
+	public $average_sales = 0;
+
 	/**
 	 * Get the legend for the main chart sidebar
 	 * @return array
@@ -42,8 +44,12 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 				$next_payment_timestamp = strtotime( $r->scheduled_date );
 
 				//Remove the time part of the end date, if there is one
-				if ( '0' !== $scheduled_ends[ $key ]  ) {
+				if ( '0' !== $scheduled_ends[ $key ] ) {
 					$scheduled_ends[ $key ] = date( 'Y-m-d', strtotime( $scheduled_ends[ $key ] ) );
+				}
+
+				if ( ! isset( $billing_intervals[ $key ] ) || ! isset( $billing_periods[ $key ] ) || ! in_array( $billing_periods[ $key ], array_keys( wcs_get_subscription_period_strings() ), true ) ) {
+					continue;
 				}
 
 				// Keep calculating all the new payments until we hit the end date of the search
@@ -67,7 +73,9 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 							$this->order_ids_recurring_totals[ $update_key ]->recurring_total += $subscription_totals[ $key ];
 						}
 					}
-				} while ( $next_payment_timestamp <= $this->end_date && isset( $scheduled_ends[ $key ] ) && ( 0 == $scheduled_ends[ $key ] || $next_payment_timestamp < strtotime( $scheduled_ends[ $key ] ) ) );
+				} while ( $next_payment_timestamp > 0 && $next_payment_timestamp <= $this->end_date
+					&& isset( $scheduled_ends[ $key ] )
+					&& ( 0 == $scheduled_ends[ $key ] || $next_payment_timestamp < strtotime( $scheduled_ends[ $key ] ) ) );
 			}
 		}
 
@@ -75,26 +83,31 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 		foreach ( $this->order_ids_recurring_totals as $r ) {
 			if ( strtotime( $r->scheduled_date ) >= $this->start_date && strtotime( $r->scheduled_date ) <= $this->end_date ) {
 
-				$total_renewal_revenue += $r->recurring_total ;
+				$total_renewal_revenue += $r->recurring_total;
 				$total_renewal_count   += $r->total_renewals;
 			}
 		}
 
 		$legend = array();
 
-		$this->average_sales = ( 0 != $total_renewal_count ? $total_renewal_revenue / $total_renewal_count : 0);
+		$this->average_sales = ( 0 != $total_renewal_count ? $total_renewal_revenue / $total_renewal_count : 0 );
 
 		$legend[] = array(
-			'title' => sprintf( __( '%s renewal income in this period', 'woocommerce-subscriptions' ), '<strong>' . wc_price( $total_renewal_revenue ) . '</strong>' ),
-			'color' => $this->chart_colours['renewals_amount'],
+			// translators: %s: formatted amount.
+			'title'            => sprintf( __( '%s renewal income in this period', 'woocommerce-subscriptions' ), '<strong>' . wc_price( $total_renewal_revenue ) . '</strong>' ),
+			'placeholder'      => __( 'The sum of all the upcoming renewal orders, including items, fees, tax and shipping, for currently active subscriptions.', 'woocommerce-subscriptions' ),
+			'color'            => $this->chart_colours['renewals_amount'],
 			'highlight_series' => 1,
 		);
 		$legend[] = array(
-			'title' => sprintf( __( '%s renewal orders', 'woocommerce-subscriptions' ), '<strong>' . $total_renewal_count . '</strong>' ),
-			'color' => $this->chart_colours['renewals_count'],
+			// translators: %s: renewal count.
+			'title'            => sprintf( __( '%s renewal orders', 'woocommerce-subscriptions' ), '<strong>' . $total_renewal_count . '</strong>' ),
+			'placeholder'      => __( 'The number of upcoming renewal orders, for currently active subscriptions.', 'woocommerce-subscriptions' ),
+			'color'            => $this->chart_colours['renewals_count'],
 			'highlight_series' => 0,
 		);
 		$legend[] = array(
+			// translators: %s: formatted amount.
 			'title' => sprintf( __( '%s average renewal amount', 'woocommerce-subscriptions' ), '<strong>' . wc_price( $this->average_sales ) . '</strong>' ),
 			'color' => $this->chart_colours['renewals_average'],
 		);
@@ -104,61 +117,117 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 
 	/**
 	 * Get report data.
-	 * @return stdClass
+	 *
+	 * @see WCS_Report_Cache_Manager::update_cache() - This method is called by the cache manager to update the cache.
+	 *
+	 * @param array $args The arguments for the report.
+	 * @return stdClass[] - Upcoming renewal data grouped by scheduled date.
 	 */
 	public function get_data( $args = array() ) {
 		global $wpdb;
 
 		$default_args = array(
-			'no_cache'  => false,
+			'no_cache' => false,
 		);
 
 		$args = apply_filters( 'wcs_reports_upcoming_recurring_revenue_args', $args );
 		$args = wp_parse_args( $args, $default_args );
 
 		// Query based on whole days, not minutes/hours so that we can cache the query for at least 24 hours
-		$base_query = $wpdb->prepare(
-			"SELECT
-				DATE(ms.meta_value) as scheduled_date,
-				SUM(mo.meta_value) as recurring_total,
-				COUNT(mo.meta_value) as total_renewals,
-				group_concat(p.ID) as subscription_ids,
-				group_concat(mi.meta_value) as billing_intervals,
-				group_concat(mp.meta_value) as billing_periods,
-				group_concat(me.meta_value) as scheduled_ends,
-				group_concat(mo.meta_value) as subscription_totals
-					FROM {$wpdb->prefix}posts p
-				LEFT JOIN {$wpdb->prefix}postmeta ms
-					ON p.ID = ms.post_id
-				LEFT JOIN {$wpdb->prefix}postmeta mo
-					ON p.ID = mo.post_id
-				LEFT JOIN {$wpdb->prefix}postmeta mi
-					ON p.ID = mi.post_id
-				LEFT JOIN {$wpdb->prefix}postmeta mp
-					ON p.ID = mp.post_id
-				LEFT JOIN {$wpdb->prefix}postmeta me
-					ON p.ID = me.post_id
-			WHERE p.post_type = 'shop_subscription'
-				AND p.post_status = 'wc-active'
-				AND mo.meta_key = '_order_total'
-				AND ms.meta_key = '_schedule_next_payment'
-				AND ( ( ms.meta_value < '%s' AND me.meta_value = 0 ) OR ( me.meta_value > '%s' AND ms.meta_value < '%s' ) )
-				AND mi.meta_key = '_billing_interval'
-				AND mp.meta_key = '_billing_period'
-				AND me.meta_key = '_schedule_end '
-			GROUP BY {$this->group_by_query}
-			ORDER BY ms.meta_value ASC",
-			date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) ),
-			date( 'Y-m-d', $this->start_date ),
-			date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) )
-		);
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The $this->group_by_query clause is hard coded.
+		if ( wcs_is_custom_order_tables_usage_enabled() ) {
+			$query = $wpdb->prepare(
+				"SELECT
+					DATE(meta_next_payment.meta_value) as scheduled_date,
+					SUM(subscriptions.total_amount) as recurring_total,
+					COUNT(subscriptions.total_amount) as total_renewals,
+					group_concat(subscriptions.ID) as subscription_ids,
+					group_concat(meta_billing_interval.meta_value) as billing_intervals,
+					group_concat(meta_billing_period.meta_value) as billing_periods,
+					group_concat(meta_schedule_end.meta_value) as scheduled_ends,
+					group_concat(subscriptions.total_amount) as subscription_totals
+						FROM {$wpdb->prefix}wc_orders subscriptions
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta meta_next_payment
+						ON subscriptions.ID = meta_next_payment.order_id
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta meta_billing_interval
+						ON subscriptions.ID = meta_billing_interval.order_id
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta meta_billing_period
+						ON subscriptions.ID = meta_billing_period.order_id
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta meta_schedule_end
+						ON subscriptions.ID = meta_schedule_end.order_id
+				WHERE subscriptions.type = 'shop_subscription'
+					AND subscriptions.status = 'wc-active'
+					AND meta_next_payment.meta_key = '_schedule_next_payment'
+					AND ( ( meta_next_payment.meta_value < %s AND meta_schedule_end.meta_value = 0 ) OR ( meta_schedule_end.meta_value > %s AND meta_next_payment.meta_value < %s ) )
+					AND meta_billing_interval.meta_key = '_billing_interval'
+					AND meta_billing_period.meta_key = '_billing_period'
+					AND meta_schedule_end.meta_key = '_schedule_end'
+				GROUP BY {$this->group_by_query}
+				ORDER BY meta_next_payment.meta_value ASC",
+				date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+				date( 'Y-m-d', $this->start_date ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+				date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) ) // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+			);
+		} else {
+			$query = $wpdb->prepare(
+				"SELECT
+					DATE(meta_next_payment.meta_value) as scheduled_date,
+					SUM(meta_order_total.meta_value) as recurring_total,
+					COUNT(meta_order_total.meta_value) as total_renewals,
+					group_concat(posts.ID) as subscription_ids,
+					group_concat(meta_billing_interval.meta_value) as billing_intervals,
+					group_concat(meta_billing_period.meta_value) as billing_periods,
+					group_concat(meta_schedule_end.meta_value) as scheduled_ends,
+					group_concat(meta_order_total.meta_value) as subscription_totals
+						FROM {$wpdb->prefix}posts posts
+					LEFT JOIN {$wpdb->prefix}postmeta meta_next_payment
+						ON posts.ID = meta_next_payment.post_id
+					LEFT JOIN {$wpdb->prefix}postmeta meta_order_total
+						ON posts.ID = meta_order_total.post_id
+					LEFT JOIN {$wpdb->prefix}postmeta meta_billing_interval
+						ON posts.ID = meta_billing_interval.post_id
+					LEFT JOIN {$wpdb->prefix}postmeta meta_billing_period
+						ON posts.ID = meta_billing_period.post_id
+					LEFT JOIN {$wpdb->prefix}postmeta meta_schedule_end
+						ON posts.ID = meta_schedule_end.post_id
+				WHERE posts.post_type = 'shop_subscription'
+					AND posts.post_status = 'wc-active'
+					AND meta_order_total.meta_key = '_order_total'
+					AND meta_next_payment.meta_key = '_schedule_next_payment'
+					AND ( ( meta_next_payment.meta_value < %s AND meta_schedule_end.meta_value = 0 ) OR ( meta_schedule_end.meta_value > %s AND meta_next_payment.meta_value < %s ) )
+					AND meta_billing_interval.meta_key = '_billing_interval'
+					AND meta_billing_period.meta_key = '_billing_period'
+					AND meta_schedule_end.meta_key = '_schedule_end'
+				GROUP BY {$this->group_by_query}
+				ORDER BY meta_next_payment.meta_value ASC",
+				date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+				date( 'Y-m-d', $this->start_date ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+				date( 'Y-m-d', strtotime( '+1 DAY', $this->end_date ) ) // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date -- Keep date formatting from original report.
+			);
+		}
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$cached_results = get_transient( strtolower( get_class( $this ) ) );
-		$query_hash     = md5( $base_query );
+		$query_hash     = md5( $query );
 
-		if ( $args['no_cache'] || false === $cached_results || ! isset( $cached_results[ $query_hash ] ) ) {
+		// Set a default value for cached results for PHP 8.2+ compatibility.
+		if ( empty( $cached_results ) ) {
+			$cached_results = array();
+		}
+
+		if ( $args['no_cache'] || ! isset( $cached_results[ $query_hash ] ) ) {
 			$wpdb->query( 'SET SESSION SQL_BIG_SELECTS=1' );
-			$cached_results[ $query_hash ] = apply_filters( 'wcs_reports_upcoming_recurring_revenue_data', $wpdb->get_results( $base_query, OBJECT_K ), $args );
+			$results = $wpdb->get_results( $query, OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- This query is prepared above.
+			/**
+			 * Filter the upcoming recurring revenue data.
+			 *
+			 * @param array $results The upcoming recurring revenue data.
+			 * @param array $args The arguments for the report.
+			 * @since 2.1.0
+			 */
+			$results = apply_filters( 'wcs_reports_upcoming_recurring_revenue_data', $results, $args );
+
+			$cached_results[ $query_hash ] = $results;
 			set_transient( strtolower( get_class( $this ) ), $cached_results, WEEK_IN_SECONDS );
 		}
 
@@ -212,7 +281,7 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 
 	/**
 	 * Get the main chart
-	 * @return string
+	 * @return void
 	 */
 	public function get_main_chart() {
 		global $wp_locale;
@@ -235,7 +304,7 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 			var main_chart;
 
 			jQuery(function(){
-				var order_data = jQuery.parseJSON( '<?php echo json_encode( $chart_data ); ?>' );
+				var order_data = JSON.parse( '<?php echo json_encode( $chart_data ); ?>' );
 				var drawGraph = function( highlight ) {
 					var series = [
 						{
@@ -326,12 +395,12 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 						}
 					);
 
-					jQuery('.chart-placeholder').resize();
+					jQuery('.chart-placeholder').trigger( 'resize' );
 				}
 
 				drawGraph();
 
-				jQuery('.highlight_series').hover(
+				jQuery('.highlight_series').on( 'hover',
 					function() {
 						drawGraph( jQuery(this).data('series') );
 					},
@@ -351,7 +420,7 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 	 */
 	public function calculate_current_range( $current_range ) {
 		switch ( $current_range ) {
-			case 'custom' :
+			case 'custom':
 				$this->start_date = strtotime( sanitize_text_field( $_GET['start_date'] ) );
 				$this->end_date   = strtotime( 'midnight', strtotime( sanitize_text_field( $_GET['end_date'] ) ) );
 
@@ -372,22 +441,22 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 					$this->chart_groupby  = 'day';
 				}
 			break;
-			case 'year' :
+			case 'year':
 				$this->start_date    = strtotime( 'now', current_time( 'timestamp' ) );
 				$this->end_date      = strtotime( 'last day', strtotime( '+1 YEAR', current_time( 'timestamp' ) ) );
 				$this->chart_groupby = 'month';
 			break;
-			case 'last_month' : // misnomer to match historical reports keys, handy for caching
+			case 'last_month': // misnomer to match historical reports keys, handy for caching
 				$this->start_date     = strtotime( date( 'Y-m-01', wcs_add_months( current_time( 'timestamp' ), '1' ) ) );
 				$this->end_date       = strtotime( date( 'Y-m-t', $this->start_date ) );
 				$this->chart_groupby  = 'day';
 			break;
-			case 'month' :
+			case 'month':
 				$this->start_date    = strtotime( 'now', current_time( 'timestamp' ) );
 				$this->end_date      = wcs_add_months( current_time( 'timestamp' ), '1' );
 				$this->chart_groupby = 'day';
 			break;
-			case '7day' :
+			case '7day':
 				$this->start_date    = strtotime( 'now', current_time( 'timestamp' ) );
 				$this->end_date      = strtotime( '+7 days', current_time( 'timestamp' ) );
 				$this->chart_groupby = 'day';
@@ -396,13 +465,13 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 
 		// Group by
 		switch ( $this->chart_groupby ) {
-			case 'day' :
-				$this->group_by_query = 'YEAR(ms.meta_value), MONTH(ms.meta_value), DAY(ms.meta_value)';
+			case 'day':
+				$this->group_by_query = 'YEAR(meta_next_payment.meta_value), MONTH(meta_next_payment.meta_value), DAY(meta_next_payment.meta_value)';
 				$this->chart_interval = ceil( max( 0, ( $this->end_date - $this->start_date ) / ( 60 * 60 * 24 ) ) );
 				$this->barwidth       = 60 * 60 * 24 * 1000;
 			break;
-			case 'month' :
-				$this->group_by_query = 'YEAR(ms.meta_value), MONTH(ms.meta_value), DAY(ms.meta_value)';
+			case 'month':
+				$this->group_by_query = 'YEAR(meta_next_payment.meta_value), MONTH(meta_next_payment.meta_value), DAY(meta_next_payment.meta_value)';
 				$this->chart_interval = 0;
 				$min_date             = $this->start_date;
 				while ( ( $min_date = wcs_add_months( $min_date, '1' ) ) <= $this->end_date ) {
@@ -424,5 +493,16 @@ class WCS_Report_Upcoming_Recurring_Revenue extends WC_Admin_Report {
 		}
 
 		return $current_range;
+	}
+
+	/**
+	 * Clears the cached query results.
+	 *
+	 * @see WCS_Report_Cache_Manager::update_cache() - This method is called by the cache manager before updating the cache.
+	 *
+	 * @since 3.0.10
+	 */
+	public function clear_cache() {
+		delete_transient( strtolower( get_class( $this ) ) );
 	}
 }

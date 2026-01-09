@@ -33,7 +33,7 @@ class WCS_Report_Cache_Manager {
 			4 => 'WCS_Report_Subscription_By_Product',
 			5 => 'WCS_Report_Subscription_By_Customer',
 		),
-		'woocommerce_subscription_payment_complete' => array( // this hook takes care of renewal, switch and initial payments
+		'woocommerce_subscription_payment_complete'  => array( // this hook takes care of renewal, switch and initial payments
 			0 => 'WCS_Report_Dashboard',
 			1 => 'WCS_Report_Subscription_Events_By_Date',
 			5 => 'WCS_Report_Subscription_By_Customer',
@@ -41,18 +41,18 @@ class WCS_Report_Cache_Manager {
 		'woocommerce_subscriptions_switch_completed' => array(
 			1 => 'WCS_Report_Subscription_Events_By_Date',
 		),
-		'woocommerce_subscription_status_changed' => array(
+		'woocommerce_subscription_status_changed'    => array(
 			0 => 'WCS_Report_Dashboard',
 			1 => 'WCS_Report_Subscription_Events_By_Date', // we really only need cancelled, expired and active status here, but we'll use a more generic hook for convenience
 			5 => 'WCS_Report_Subscription_By_Customer',
 		),
-		'woocommerce_subscription_status_active' => array(
+		'woocommerce_subscription_status_active'     => array(
 			2 => 'WCS_Report_Upcoming_Recurring_Revenue',
 		),
-		'woocommerce_new_order_item' => array(
+		'woocommerce_new_order_item'                 => array(
 			4 => 'WCS_Report_Subscription_By_Product',
 		),
-		'woocommerce_update_order_item' => array(
+		'woocommerce_update_order_item'              => array(
 			4 => 'WCS_Report_Subscription_By_Product',
 		),
 	);
@@ -75,12 +75,11 @@ class WCS_Report_Cache_Manager {
 	/**
 	 * Attach callbacks to manage cache updates
 	 *
-	 * @since 2.1
+	 * @since 7.8.0 - Compatible with HPOS, originally introduced in 2.1
 	 */
 	public function __construct() {
-
 		// Use the old hooks
-		if ( WC_Subscriptions::is_woocommerce_pre( '3.0' ) ) {
+		if ( wcs_is_woocommerce_pre( '3.0' ) ) {
 
 			$hooks = array(
 				'woocommerce_order_add_product'  => 'woocommerce_new_order_item',
@@ -106,6 +105,8 @@ class WCS_Report_Cache_Manager {
 
 		// Add system status information.
 		add_filter( 'wcs_system_status', array( $this, 'add_system_status_info' ) );
+
+		add_action( 'woocommerce_subscriptions_upgraded', array( $this, 'transfer_large_site_cache_option' ), 10, 2 );
 	}
 
 	/**
@@ -115,7 +116,7 @@ class WCS_Report_Cache_Manager {
 	 * This function is attached as a callback on the events in the $update_events_and_classes property.
 	 *
 	 * @since 2.1
-	 * @return null
+	 * @return void
 	 */
 	public function set_reports_to_update() {
 		if ( isset( $this->update_events_and_classes[ current_filter() ] ) ) {
@@ -139,37 +140,38 @@ class WCS_Report_Cache_Manager {
 	 */
 	public function schedule_cache_updates() {
 
-		if ( ! empty( $this->reports_to_update ) ) {
+		if ( empty( $this->reports_to_update ) ) {
+			return;
+		}
 
-			// On large sites, we want to run the cache update once at 4am in the site's timezone
-			if ( $this->use_large_site_cache() ) {
+		// On large sites, we want to run the cache update once at 4am in the site's timezone
+		if ( $this->use_large_site_cache() ) {
 
-				$cache_update_timestamp = $this->get_large_site_cache_update_timestamp();
+			$cache_update_timestamp = $this->get_large_site_cache_update_timestamp();
 
-				// Schedule one update event for each class to avoid updating cache more than once for the same class for different events
-				foreach ( $this->reports_to_update as $index => $report_class ) {
+			// Schedule one update event for each class to avoid updating cache more than once for the same class for different events
+			foreach ( $this->reports_to_update as $index => $report_class ) {
 
-					$cron_args = array( 'report_class' => $report_class );
+				$cron_args = array( 'report_class' => $report_class );
 
-					if ( false === as_next_scheduled_action( $this->cron_hook, $cron_args ) ) {
-						// Use the index to space out caching of each report to make them 15 minutes apart so that on large sites, where we assume they'll get a request at least once every few minutes, we don't try to update the caches of all reports in the same request
-						as_schedule_single_action( $cache_update_timestamp + 15 * MINUTE_IN_SECONDS * ( $index + 1 ), $this->cron_hook, $cron_args );
-					}
+				if ( false === as_next_scheduled_action( $this->cron_hook, $cron_args ) ) {
+					// Use the index to space out caching of each report to make them 15 minutes apart so that on large sites, where we assume they'll get a request at least once every few minutes, we don't try to update the caches of all reports in the same request
+					as_schedule_single_action( $cache_update_timestamp + 15 * MINUTE_IN_SECONDS * ( $index + 1 ), $this->cron_hook, $cron_args );
 				}
-			} else { // Otherwise, run it 10 minutes after the last cache invalidating event
+			}
+		} else { // Otherwise, run it 10 minutes after the last cache invalidating event
 
-				// Schedule one update event for each class to avoid updating cache more than once for the same class for different events
-				foreach ( $this->reports_to_update as $index => $report_class ) {
+			// Schedule one update event for each class to avoid updating cache more than once for the same class for different events
+			foreach ( $this->reports_to_update as $index => $report_class ) {
 
-					$cron_args = array( 'report_class' => $report_class );
+				$cron_args = array( 'report_class' => $report_class );
 
-					if ( false !== as_next_scheduled_action( $this->cron_hook, $cron_args ) ) {
-						as_unschedule_action( $this->cron_hook, $cron_args );
-					}
-
-					// Use the index to space out caching of each report to make them 5 minutes apart so that on large sites, where we assume they'll get a request at least once every few minutes, we don't try to update the caches of all reports in the same request
-					as_schedule_single_action( gmdate( 'U' ) + MINUTE_IN_SECONDS * ( $index + 1 ) * 5, $this->cron_hook, $cron_args );
+				if ( false !== as_next_scheduled_action( $this->cron_hook, $cron_args ) ) {
+					as_unschedule_action( $this->cron_hook, $cron_args );
 				}
+
+				// Use the index to space out caching of each report to make them 5 minutes apart so that on large sites, where we assume they'll get a request at least once every few minutes, we don't try to update the caches of all reports in the same request
+				as_schedule_single_action( (int) gmdate( 'U' ) + MINUTE_IN_SECONDS * ( $index + 1 ) * 5, $this->cron_hook, $cron_args );
 			}
 		}
 	}
@@ -178,7 +180,6 @@ class WCS_Report_Cache_Manager {
 	 * Update the cache data for a given report, as specified with $report_class, by call it's get_data() method.
 	 *
 	 * @since 2.1
-	 * @return null
 	 */
 	public function update_cache( $report_class ) {
 		/**
@@ -210,18 +211,29 @@ class WCS_Report_Cache_Manager {
 
 		// Load report class dependencies
 		require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
-		require_once( WC()->plugin_path() . '/includes/admin/reports/class-wc-admin-report.php' );
+
+		$within_ci_environment = getenv( 'CI' );
+		$wc_core_dir_from_env  = getenv( 'WC_CORE_DIR' );
+
+		if ( $within_ci_environment && ! empty( $wc_core_dir_from_env ) ) {
+			$wc_core_dir = $wc_core_dir_from_env;
+		} elseif ( $within_ci_environment ) {
+			$wc_core_dir = '/tmp/woocommerce';
+		} else {
+			$wc_core_dir = WC()->plugin_path();
+		}
+
+		require_once( $wc_core_dir . '/includes/admin/reports/class-wc-admin-report.php' );
 
 		$reflector = new ReflectionMethod( $report_class, 'get_data' );
 
 		// Some report classes extend WP_List_Table which has a constructor using methods not available on WP-Cron (and unable to be loaded with a __doing_it_wrong() notice), so they have a static get_data() method and do not need to be instantiated
 		if ( $reflector->isStatic() ) {
-
+			call_user_func( array( $report_class, 'clear_cache' ) );
 			call_user_func( array( $report_class, 'get_data' ), array( 'no_cache' => true ) );
-
 		} else {
-
 			$report = new $report_class();
+			$report->clear_cache();
 
 			// Classes with a non-static get_data() method can be displayed for different time series, so we need to update the cache for each of those ranges
 			foreach ( array( 'year', 'last_month', 'month', '7day' ) as $range ) {
@@ -244,23 +256,7 @@ class WCS_Report_Cache_Manager {
 	protected function use_large_site_cache() {
 
 		if ( null === $this->use_large_site_cache ) {
-
-			if ( false == get_option( 'wcs_report_use_large_site_cache' ) ) {
-
-				$subscription_counts = (array) wp_count_posts( 'shop_subscription' );
-				$order_counts        = (array) wp_count_posts( 'shop_order' );
-
-				if ( array_sum( $subscription_counts ) > 3000 || array_sum( $order_counts ) > 25000 ) {
-
-					update_option( 'wcs_report_use_large_site_cache', 'true', false );
-
-					$this->use_large_site_cache = true;
-				} else {
-					$this->use_large_site_cache = false;
-				}
-			} else {
-				$this->use_large_site_cache = true;
-			}
+			$this->use_large_site_cache = wcs_is_large_site();
 		}
 
 		return apply_filters( 'wcs_report_use_large_site_cache', $this->use_large_site_cache );
@@ -336,7 +332,7 @@ class WCS_Report_Cache_Manager {
 				'label'   => 'Cache Update Failures',
 				/* translators: %d refers to the number of times we have detected cache update failures */
 				'note'    => sprintf( _n( '%d failures', '%d failure', $failures, 'woocommerce-subscriptions' ), $failures ),
-				'success' => 0 === $failures,
+				'success' => 0 === (int)$failures,
 			),
 		);
 
@@ -360,5 +356,25 @@ class WCS_Report_Cache_Manager {
 		}
 
 		return $cache_update_timestamp;
+	}
+
+	/**
+	 * Transfers the 'wcs_report_use_large_site_cache' option to the new 'wcs_is_large_site' option.
+	 *
+	 * In 3.0.7 we introduced a more general use option, 'wcs_is_large_site', replacing the need for one specifically
+	 * for report caching. This function migrates the existing option value if it was previously set.
+	 *
+	 * @since 3.0.7
+	 *
+	 * @param string $new_version      The new Subscriptions plugin version.
+	 * @param string $previous_version The version of Subscriptions prior to upgrade.
+	 */
+	public function transfer_large_site_cache_option( $new_version, $previous_version ) {
+
+		// Check if the plugin upgrade is from a version prior to the option being deprecated (before 3.0.7).
+		if ( version_compare( $previous_version, '3.0.7', '<' ) && false !== get_option( 'wcs_report_use_large_site_cache' ) ) {
+			update_option( 'wcs_is_large_site', 'yes', false );
+			delete_option( 'wcs_report_use_large_site_cache' );
+		}
 	}
 }

@@ -4,7 +4,7 @@
  *
  * @author   Prospress
  * @category WooCommerce Subscriptions/Templates
- * @version  2.6.0
+ * @version  7.2.0 - Migrated from WooCommerce Subscriptions v2.6.4
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<th class="subscription-status order-status woocommerce-orders-table__header woocommerce-orders-table__header-order-status woocommerce-orders-table__header-subscription-status"><span class="nobr"><?php esc_html_e( 'Status', 'woocommerce-subscriptions' ); ?></span></th>
 			<th class="subscription-next-payment order-date woocommerce-orders-table__header woocommerce-orders-table__header-order-date woocommerce-orders-table__header-subscription-next-payment"><span class="nobr"><?php echo esc_html_x( 'Next payment', 'table heading', 'woocommerce-subscriptions' ); ?></span></th>
 			<th class="subscription-total order-total woocommerce-orders-table__header woocommerce-orders-table__header-order-total woocommerce-orders-table__header-subscription-total"><span class="nobr"><?php echo esc_html_x( 'Total', 'table heading', 'woocommerce-subscriptions' ); ?></span></th>
-			<th class="subscription-actions order-actions woocommerce-orders-table__header woocommerce-orders-table__header-order-actions woocommerce-orders-table__header-subscription-actions">&nbsp;</th>
+			<th class="subscription-actions order-actions woocommerce-orders-table__header woocommerce-orders-table__header-order-actions woocommerce-orders-table__header-subscription-actions"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'woocommerce-subscriptions' ); ?></span></th>
 		</tr>
 	</thead>
 
@@ -31,7 +31,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php foreach ( $subscriptions as $subscription_id => $subscription ) : ?>
 		<tr class="order woocommerce-orders-table__row woocommerce-orders-table__row--status-<?php echo esc_attr( $subscription->get_status() ); ?>">
 			<td class="subscription-id order-number woocommerce-orders-table__cell woocommerce-orders-table__cell-subscription-id woocommerce-orders-table__cell-order-number" data-title="<?php esc_attr_e( 'ID', 'woocommerce-subscriptions' ); ?>">
-				<a href="<?php echo esc_url( $subscription->get_view_order_url() ); ?>"><?php echo esc_html( sprintf( _x( '#%s', 'hash before order number', 'woocommerce-subscriptions' ), $subscription->get_order_number() ) ); ?></a>
+				<?php // translators: placeholder is a subscription number. ?>
+				<a href="<?php echo esc_url( $subscription->get_view_order_url() ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View subscription number %s', 'woocommerce-subscriptions' ), $subscription->get_order_number() ) ) ?>">
+					<?php echo esc_html( sprintf( _x( '#%s', 'hash before order number', 'woocommerce-subscriptions' ), $subscription->get_order_number() ) ); ?>
+				</a>
 				<?php do_action( 'woocommerce_my_subscriptions_after_subscription_id', $subscription ); ?>
 			</td>
 			<td class="subscription-status order-status woocommerce-orders-table__cell woocommerce-orders-table__cell-subscription-status woocommerce-orders-table__cell-order-status" data-title="<?php esc_attr_e( 'Status', 'woocommerce-subscriptions' ); ?>">
@@ -47,7 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php echo wp_kses_post( $subscription->get_formatted_order_total() ); ?>
 			</td>
 			<td class="subscription-actions order-actions woocommerce-orders-table__cell woocommerce-orders-table__cell-subscription-actions woocommerce-orders-table__cell-order-actions">
-				<a href="<?php echo esc_url( $subscription->get_view_order_url() ) ?>" class="woocommerce-button button view"><?php echo esc_html_x( 'View', 'view a subscription', 'woocommerce-subscriptions' ); ?></a>
+				<a href="<?php echo esc_url( $subscription->get_view_order_url() ) ?>" class="woocommerce-button button view<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>"><?php echo esc_html_x( 'View', 'view a subscription', 'woocommerce-subscriptions' ); ?></a>
 				<?php do_action( 'woocommerce_my_subscriptions_actions', $subscription ); ?>
 			</td>
 		</tr>
@@ -71,9 +74,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php if ( 1 < $current_page ) :
 				printf( esc_html__( 'You have reached the end of subscriptions. Go to the %sfirst page%s.', 'woocommerce-subscriptions' ), '<a href="' . esc_url( wc_get_endpoint_url( 'subscriptions', 1 ) ) . '">', '</a>' );
 			else :
-				// translators: placeholders are opening and closing link tags to take to the shop page
-				printf( esc_html__( 'You have no active subscriptions. Find your first subscription in the %sstore%s.', 'woocommerce-subscriptions' ), '<a href="' . esc_url( apply_filters( 'woocommerce_subscriptions_message_store_url', get_permalink( wc_get_page_id( 'shop' ) ) ) ) . '">', '</a>' );
-			endif; ?>
+				esc_html_e( 'You have no active subscriptions.', 'woocommerce-subscriptions' );
+				?>
+				<a class="woocommerce-Button button" href="<?php echo esc_url( apply_filters( 'woocommerce_return_to_shop_redirect', wc_get_page_permalink( 'shop' ) ) ); ?>">
+					<?php esc_html_e( 'Browse products', 'woocommerce-subscriptions' ); ?>
+				</a>
+			<?php
+		endif; ?>
 		</p>
 
 	<?php endif; ?>

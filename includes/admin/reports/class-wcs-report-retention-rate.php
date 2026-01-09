@@ -21,7 +21,7 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 	 * Get report data
 	 *
 	 * @since 2.1
-	 * @return array
+	 * @return stdClass
 	 */
 	public function get_report_data() {
 		if ( empty( $this->report_data ) ) {
@@ -38,25 +38,13 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 	 * subscription may not have been active all of that time. Instead, it may have been on-hold for part of it.
 	 *
 	 * @since 2.1
-	 * @return null
+	 * @return void
 	 */
 	private function query_report_data() {
-		global $wpdb;
-
 		$this->report_data = new stdClass;
 
 		// First, let's find the age of the longest living subscription in days
-		$oldest_subscription_age_in_days = $wpdb->get_var( $wpdb->prepare(
-			"SELECT MAX(DATEDIFF(CAST(postmeta.meta_value AS DATETIME),posts.post_date_gmt)) as age_in_days
-			 FROM {$wpdb->prefix}posts posts
-				LEFT JOIN {$wpdb->prefix}postmeta postmeta ON posts.ID = postmeta.post_id
-			 WHERE posts.post_type = 'shop_subscription'
-				AND postmeta.meta_key = %s
-				AND postmeta.meta_value <> '0'
-			 ORDER BY age_in_days DESC
-			 LIMIT 1",
-			wcs_get_date_meta_key( 'end' )
-		) );
+		$oldest_subscription_age_in_days = $this->get_max_subscription_age_in_days();
 
 		// Now determine what interval to use based on that length
 		if ( $oldest_subscription_age_in_days > 365 ) {
@@ -74,32 +62,12 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 		$oldest_subscription_age = floor( $oldest_subscription_age_in_days / $days_in_interval_period );
 
 		// Now get all subscriptions, not just those that have ended, and find out how long they have lived (or if they haven't ended yet, consider them as being alive for one period longer than the longest living subsription)
-		$base_query = $wpdb->prepare(
-			"SELECT
-				IF(COALESCE(cancelled_date.meta_value,end_date.meta_value) <> '0',CEIL(DATEDIFF(CAST(COALESCE(cancelled_date.meta_value,end_date.meta_value) AS DATETIME),posts.post_date_gmt)/%d),%d) as periods_active,
-				COUNT(posts.ID) as count
-			 FROM {$wpdb->prefix}posts posts
-				LEFT JOIN {$wpdb->prefix}postmeta cancelled_date
-					ON posts.ID = cancelled_date.post_id
-					AND cancelled_date.meta_key = %s
-					AND cancelled_date.meta_value <> '0'
-				LEFT JOIN {$wpdb->prefix}postmeta end_date
-					ON posts.ID = end_date.post_id
-					AND end_date.meta_key = %s
-			 WHERE posts.post_type = 'shop_subscription'
-				AND posts.post_status NOT IN( 'wc-pending', 'trash' )
-			 GROUP BY periods_active
-			 ORDER BY periods_active ASC",
-			$days_in_interval_period,
-			( $oldest_subscription_age + 1 ), // Consider living subscriptions as being alive for one period longer than the longest living subsription
-			wcs_get_date_meta_key( 'cancelled' ), // If a subscription has a cancelled date, use that to determine a more accurate lifetime
-			wcs_get_date_meta_key( 'end' ) // Otherwise, we want to use the end date for subscritions that have expired
-		);
+		$subscription_ages = $this->fetch_subscriptions_ages( $days_in_interval_period, $oldest_subscription_age );
 
-		$subscription_ages = $wpdb->get_results( $base_query, OBJECT_K );
-
-		$this->report_data->total_subscriptions  = $this->report_data->unended_subscriptions = absint( array_sum( wp_list_pluck( $subscription_ages, 'count' ) ) );
-		$this->report_data->living_subscriptions = array();
+		// Set initial values for the report data.
+		$this->report_data->total_subscriptions   = absint( array_sum( wp_list_pluck( $subscription_ages, 'count' ) ) );
+		$this->report_data->unended_subscriptions = $this->report_data->total_subscriptions;
+		$this->report_data->living_subscriptions  = array();
 
 		// At day zero, no subscriptions have ended
 		$this->report_data->living_subscriptions[0] = $this->report_data->total_subscriptions;
@@ -121,22 +89,121 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 	}
 
 	/**
+	 * Get the age of the longest living subscription in days.
+	 *
+	 * @return int
+	 */
+	private function get_max_subscription_age_in_days() {
+		global $wpdb;
+
+		$end_date_meta_key = wcs_get_date_meta_key( 'end' );
+
+		if ( wcs_is_custom_order_tables_usage_enabled() ) {
+			$query = $wpdb->prepare(
+				"SELECT MAX(DATEDIFF(CAST(meta.meta_value AS DATETIME),orders.date_created_gmt)) as age_in_days
+				FROM {$wpdb->prefix}wc_orders orders
+				LEFT JOIN {$wpdb->prefix}wc_orders_meta meta ON orders.ID = meta.order_id
+				WHERE orders.type = 'shop_subscription'
+					AND meta.meta_key = %s
+					AND meta.meta_value <> '0'
+				ORDER BY age_in_days DESC
+				LIMIT 1",
+				$end_date_meta_key
+			);
+		} else {
+			$query = $wpdb->prepare(
+				"SELECT MAX(DATEDIFF(CAST(postmeta.meta_value AS DATETIME),posts.post_date_gmt)) as age_in_days
+				FROM {$wpdb->prefix}posts posts
+					LEFT JOIN {$wpdb->prefix}postmeta postmeta ON posts.ID = postmeta.post_id
+				WHERE posts.post_type = 'shop_subscription'
+					AND postmeta.meta_key = %s
+					AND postmeta.meta_value <> '0'
+				ORDER BY age_in_days DESC
+				LIMIT 1",
+				$end_date_meta_key
+			);
+		}
+
+		return $wpdb->get_var( $query ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The query is prepared above.
+	}
+
+	/**
+	 * Fetch the number of periods each subscription has between creating and ending.
+	 *
+	 * @param int $days_in_interval_period
+	 * @param int $oldest_subscription_age
+	 * @return array
+	 */
+	private function fetch_subscriptions_ages( $days_in_interval_period, $oldest_subscription_age ) {
+		global $wpdb;
+
+		$end_date_meta_key       = wcs_get_date_meta_key( 'end' );
+		$cancelled_date_meta_key = wcs_get_date_meta_key( 'cancelled' );
+
+		if ( wcs_is_custom_order_tables_usage_enabled() ) {
+			$query = $wpdb->prepare(
+				"SELECT
+					IF(COALESCE(cancelled_date.meta_value,end_date.meta_value) <> '0',CEIL(DATEDIFF(CAST(COALESCE(cancelled_date.meta_value,end_date.meta_value) AS DATETIME),orders.date_created_gmt)/%d),%d) as periods_active,
+					COUNT(orders.ID) as count 
+				FROM {$wpdb->prefix}wc_orders orders
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta cancelled_date
+						ON orders.ID = cancelled_date.order_id
+						AND cancelled_date.meta_key = %s
+						AND cancelled_date.meta_value <> '0'
+					LEFT JOIN {$wpdb->prefix}wc_orders_meta end_date
+						ON orders.ID = end_date.order_id
+						AND end_date.meta_key = %s
+				WHERE orders.type = 'shop_subscription'
+					AND orders.status NOT IN( 'wc-pending', 'trash' )
+				GROUP BY periods_active
+				ORDER BY periods_active ASC",
+				$days_in_interval_period,
+				( $oldest_subscription_age + 1 ), // Consider living subscriptions as being alive for one period longer than the longest living subscription
+				$cancelled_date_meta_key, // If a subscription has a cancelled date, use that to determine a more accurate lifetime
+				$end_date_meta_key // Otherwise, we want to use the end date for subscriptions that have expired
+			);
+		} else {
+			$query = $wpdb->prepare(
+				"SELECT
+					IF(COALESCE(cancelled_date.meta_value,end_date.meta_value) <> '0',CEIL(DATEDIFF(CAST(COALESCE(cancelled_date.meta_value,end_date.meta_value) AS DATETIME),posts.post_date_gmt)/%d),%d) as periods_active,
+					COUNT(posts.ID) as count 
+				FROM {$wpdb->prefix}posts posts
+					LEFT JOIN {$wpdb->prefix}postmeta cancelled_date
+						ON posts.ID = cancelled_date.post_id
+						AND cancelled_date.meta_key = %s
+						AND cancelled_date.meta_value <> '0'
+					LEFT JOIN {$wpdb->prefix}postmeta end_date
+						ON posts.ID = end_date.post_id
+						AND end_date.meta_key = %s
+				WHERE posts.post_type = 'shop_subscription'
+					AND posts.post_status NOT IN( 'wc-pending', 'trash' )
+				GROUP BY periods_active
+				ORDER BY periods_active ASC",
+				$days_in_interval_period,
+				( $oldest_subscription_age + 1 ), // Consider living subscriptions as being alive for one period longer than the longest living subscription
+				$cancelled_date_meta_key, // If a subscription has a cancelled date, use that to determine a more accurate lifetime
+				$end_date_meta_key // Otherwise, we want to use the end date for subscriptions that have expired
+			);
+		}
+
+		return $wpdb->get_results( $query, OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The query is prepared above.
+	}
+
+	/**
 	 * Output the report
 	 *
 	 * Use a custom report as we don't need the date filters provided by the WooCommerce html-report-by-date.php template.
 	 *
 	 * @since 2.1
-	 * @return null
 	 */
 	public function output_report() {
-		include( plugin_dir_path( WC_Subscriptions::$plugin_file ) . '/includes/admin/views/html-report-by-period.php' );
+		include( WC_Subscriptions_Plugin::instance()->get_plugin_directory( 'includes/admin/views/html-report-by-period.php' ) );
 	}
 
 	/**
 	 * Output the HTML and JavaScript to plot the chart
 	 *
 	 * @since 2.1
-	 * @return null
 	 */
 	public function get_main_chart() {
 
@@ -150,6 +217,8 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 				absint( $living_subscription_count ),
 			);
 		}
+
+		$x_axes_label = '';
 
 		switch ( $this->report_data->interval_period ) {
 			case 'day':
@@ -172,7 +241,7 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 			var main_chart;
 
 			jQuery(function(){
-				var subscription_lifespans = jQuery.parseJSON( '<?php echo json_encode( $data_to_plot ); ?>' ),
+				var subscription_lifespans = JSON.parse( '<?php echo json_encode( $data_to_plot ); ?>' ),
 					unended_subscriptions  = <?php echo esc_js( $this->report_data->unended_subscriptions ); ?>;
 
 				var drawGraph = function( highlight ) {
@@ -212,7 +281,7 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 								color: '#aaa',
 								position: "bottom",
 								tickDecimals: 0,
-								axisLabel: "<?php echo esc_js( $x_axes_label ); ?>",
+								axisLabel: "<?php esc_js( $x_axes_label ); ?>",
 								axisLabelPadding: 18,
 								font: {
 									color: "#aaa"
@@ -232,7 +301,7 @@ class WCS_Report_Retention_Rate extends WC_Admin_Report {
 						}
 					);
 
-					jQuery('.chart-placeholder').resize();
+					jQuery('.chart-placeholder').trigger( 'resize' );
 				}
 
 				drawGraph();

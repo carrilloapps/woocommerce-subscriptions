@@ -16,7 +16,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * REST API Subscriptions controller class.
  *
  * @package WooCommerce_Subscriptions/API
- * @extends WC_REST_Orders_Controller
  */
 class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 
@@ -61,10 +60,11 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 			'schema' => array( $this, 'get_public_item_schema' ),
 		) );
 
-		register_rest_route( $this->namespace, '/' . $this->rest_base . '/statuses', array(
+		register_rest_route( $this->namespace, '/' . $this->rest_base . '/statuses', array( // nosemgrep: audit.php.wp.security.rest-route.permission-callback.return-true  -- /subscriptions/statuses is a public endpoint and doesn't need any permission checks.
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_statuses' ),
+				'permission_callback' => '__return_true',
 			),
 			'schema' => array( $this, 'get_public_item_schema' ),
 		) );
@@ -75,7 +75,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 	 *
 	 * @since 2.1
 	 * @param WP_REST_Response $response
-	 * @param WP_POST $post
+	 * @param WP_Post $post
 	 * @param WP_REST_Request $request
 	 */
 	public function filter_get_subscription_response( $response, $post, $request ) {
@@ -122,7 +122,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 	 *
 	 * @since 2.1
 	 * @param WP_REST_Request $request
-	 * @param WP_POST $post
+	 * @param WP_Post $post
 	 */
 	protected function update_order( $request, $post ) {
 		try {
@@ -165,7 +165,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 	 * @return WP_Error|WP_REST_Response $response
 	 */
 	public function get_subscription_orders( $request ) {
-		$id = (int) $request['id'];
+		$id = absint( $request['id'] );
 
 		if ( empty( $id ) || ! wcs_is_subscription( $id ) ) {
 			return new WP_Error( 'woocommerce_rest_invalid_shop_subscription_id', __( 'Invalid subscription id.', 'woocommerce-subscriptions' ), array( 'status' => 404 ) );
@@ -237,6 +237,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 		$subscription = wcs_create_subscription( $args );
 
 		if ( is_wp_error( $subscription ) ) {
+			// translators: placeholder is an error message.
 			throw new WC_REST_Exception( 'woocommerce_rest_cannot_create_subscription', sprintf( __( 'Cannot create subscription: %s.', 'woocommerce-subscriptions' ), implode( ', ', $subscription->get_error_messages() ) ), 400 );
 		}
 
@@ -281,6 +282,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 				$subscription->update_dates( $dates_to_update );
 			}
 		} catch ( Exception $e ) {
+			// translators: placeholder is an error message.
 			throw new WC_REST_Exception( 'woocommerce_rest_cannot_update_subscription_dates', sprintf( __( 'Updating subscription dates errored with message: %s', 'woocommerce-subscriptions' ), $e->getMessage() ), 400 );
 		}
 	}
@@ -343,18 +345,18 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 		$schema = parent::get_item_schema();
 
 		$subscriptions_schema = array(
-			'billing_interval' => array(
+			'billing_interval'  => array(
 				'description' => __( 'The number of billing periods between subscription renewals.', 'woocommerce-subscriptions' ),
 				'type'        => 'integer',
 				'context'     => array( 'view', 'edit' ),
 			),
-			'billing_period' => array(
+			'billing_period'    => array(
 				'description' => __( 'Billing period for the subscription.', 'woocommerce-subscriptions' ),
 				'type'        => 'string',
 				'enum'        => array_keys( wcs_get_subscription_period_strings() ),
 				'context'     => array( 'view', 'edit' ),
 			),
-			'payment_details' => array(
+			'payment_details'   => array(
 				'description' => __( 'Subscription payment details.', 'woocommerce-subscriptions' ),
 				'type'        => 'object',
 				'context'     => array( 'edit' ),
@@ -366,12 +368,12 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 					),
 				),
 			),
-			'start_date' => array(
+			'start_date'        => array(
 				'description' => __( "The subscription's start date.", 'woocommerce-subscriptions' ),
 				'type'        => 'date-time',
 				'context'     => array( 'view', 'edit' ),
 			),
-			'trial_date' => array(
+			'trial_date'        => array(
 				'description' => __( "The subscription's trial date", 'woocommerce-subscriptions' ),
 				'type'        => 'date-time',
 				'context'     => array( 'view', 'edit' ),
@@ -381,7 +383,7 @@ class WC_REST_Subscriptions_Controller extends WC_REST_Orders_Controller {
 				'type'        => 'date-time',
 				'context'     => array( 'view', 'edit' ),
 			),
-			'end_date' => array(
+			'end_date'          => array(
 				'description' => __( "The subscription's end date.", 'woocommerce-subscriptions' ),
 				'type'        => 'date-time',
 				'context'     => array( 'view', 'edit' ),

@@ -212,7 +212,15 @@ class WC_API_Subscriptions extends WC_API_Orders {
 		} catch ( WC_API_Exception $e ) {
 			return new WP_Error( $e->getErrorCode(), $e->getMessage(), array( 'status' => $e->getCode() ) );
 		} catch ( Exception $e ) {
-			$response = array( 'error', array( 'wcs_api_error_create_subscription' => array( 'message' => $e->getMessage(), 'status' => $e->getCode() ) ) );
+			$response = array(
+				'error',
+				array(
+					'wcs_api_error_create_subscription' => array(
+						'message' => $e->getMessage(),
+						'status'  => $e->getCode(),
+					),
+				),
+			);
 
 			// show the subscription in response if it was still created but errored.
 			if ( ! empty( $subscription ) && ! is_wp_error( $subscription ) ) {
@@ -294,14 +302,13 @@ class WC_API_Subscriptions extends WC_API_Orders {
 	 * @since 2.0
 	 */
 	public function update_payment_method( $subscription, $payment_details, $updating ) {
-		global $wpdb;
-
 		$payment_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		$payment_method   = ( ! empty( $payment_details['method_id'] ) ) ? $payment_details['method_id'] : 'manual';
 		$payment_gateway  = ( isset( $payment_gateways[ $payment_details['method_id'] ] ) ) ? $payment_gateways[ $payment_details['method_id'] ] : '';
 
 		try {
-			$wpdb->query( 'START TRANSACTION' );
+			$transaction = new WCS_SQL_Transaction();
+			$transaction->start();
 
 			if ( $updating && ! array_key_exists( $payment_method, WCS_Change_Payment_Method_Admin::get_valid_payment_methods( $subscription ) ) ) {
 				throw new Exception( 'wcs_api_edit_subscription_error', __( 'Gateway does not support admin changing the payment method on a Subscription.', 'woocommerce-subscriptions' ) );
@@ -336,10 +343,10 @@ class WC_API_Subscriptions extends WC_API_Orders {
 
 			$subscription->set_payment_method( $payment_gateway, $payment_method_meta );
 
-			$wpdb->query( 'COMMIT' );
+			$transaction->commit();
 
 		} catch ( Exception $e ) {
-			$wpdb->query( 'ROLLBACK' );
+			$transaction->rollback();
 
 			// translators: 1$: gateway id, 2$: error message
 			throw new Exception( sprintf( __( 'Subscription payment method could not be set to %1$s and has been set to manual with error message: %2$s', 'woocommerce-subscriptions' ), ( ! empty( $payment_gateway->id ) ) ? $payment_gateway->id : 'manual', $e->getMessage() ) );

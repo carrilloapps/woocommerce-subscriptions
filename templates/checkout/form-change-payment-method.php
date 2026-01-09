@@ -3,9 +3,8 @@
  * Pay for order form displayed after a customer has clicked the "Change Payment method" button
  * next to a subscription on their My Account page.
  *
- * @author  Prospress
  * @package WooCommerce/Templates
- * @version 2.6.0
+ * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.6.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -51,8 +50,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		$pay_order_button_text     = apply_filters( 'woocommerce_change_payment_button_text', $pay_order_button_text );
 		$customer_subscription_ids = WCS_Customer_Store::instance()->get_users_subscription_ids( $subscription->get_customer_id() );
+		$payment_gateways_handler  = WC_Subscriptions_Core_Plugin::instance()->get_gateways_handler_class();
+		$available_gateways        = WC()->payment_gateways->get_available_payment_gateways();
 
-		if ( $available_gateways = WC()->payment_gateways->get_available_payment_gateways() ) : ?>
+		if ( $available_gateways ) :
+			?>
 			<ul class="payment_methods methods">
 				<?php
 
@@ -83,27 +85,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<?php endif; ?>
 
 		<?php if ( $available_gateways ) : ?>
-			<?php if ( count( $customer_subscription_ids ) > 1 && WC_Subscriptions_Payment_Gateways::one_gateway_supports( 'subscription_payment_method_change_admin' ) ) : ?>
+			<?php if ( count( $customer_subscription_ids ) > 1 && $payment_gateways_handler::one_gateway_supports( 'subscription_payment_method_change_admin' ) ) : ?>
 			<span class="update-all-subscriptions-payment-method-wrap">
-			<?php
+				<?php
 				// translators: $1: opening <strong> tag, $2: closing </strong> tag
-				$label = sprintf( esc_html__( 'Update the payment method used for %1$sall%2$s of my current subscriptions', 'woocommerce-subscriptions' ), '<strong>', '</strong>' );
+				$label = sprintf( esc_html__( 'Use this payment method for %1$sall%2$s of my current subscriptions', 'woocommerce-subscriptions' ), '<strong>', '</strong>' );
 
 				woocommerce_form_field(
 					'update_all_subscriptions_payment_method',
 					array(
-						'type'    => 'checkbox',
-						'class'   => array( 'form-row-wide' ),
-						'label'   => $label,
-						'default' => apply_filters( 'wcs_update_all_subscriptions_payment_method_checked', false ),
+						'type'     => 'checkbox',
+						'class'    => array( 'form-row-wide' ),
+						'label'    => $label,
+						'required' => true, // Making the field required to help make it more prominent on the page.
+						'default'  => apply_filters( 'wcs_update_all_subscriptions_payment_method_checked', true ),
 					)
 				);
-			?>
+				?>
 			</span>
 			<?php endif; ?>
 		<div class="form-row">
 			<?php wp_nonce_field( 'wcs_change_payment_method', '_wcsnonce', true, true ); ?>
-			<?php echo wp_kses( apply_filters( 'woocommerce_change_payment_button_html', '<input type="submit" class="button alt" id="place_order" value="' . esc_attr( $pay_order_button_text ) . '" data-value="' . esc_attr( $pay_order_button_text ) . '" />' ), array( 'input' => array( 'type' => array(), 'class' => array(), 'id' => array(), 'value' => array(), 'data-value' => array() ) ) ); ?>
+
+			<?php do_action( 'woocommerce_subscriptions_change_payment_before_submit' ); ?>
+
+			<?php
+			echo wp_kses(
+				apply_filters( 'woocommerce_change_payment_button_html', '<input type="submit" class="button alt' . esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ) . '" id="place_order" value="' . esc_attr( $pay_order_button_text ) . '" data-value="' . esc_attr( $pay_order_button_text ) . '" />' ),
+				array(
+					'input' => array(
+						'type'       => array(),
+						'class'      => array(),
+						'id'         => array(),
+						'value'      => array(),
+						'data-value' => array(),
+					),
+				)
+			);
+			?>
+
+			<?php do_action( 'woocommerce_subscriptions_change_payment_after_submit' ); ?>
+
 			<input type="hidden" name="woocommerce_change_payment" value="<?php echo esc_attr( $subscription->get_id() ); ?>" />
 		</div>
 		<?php endif; ?>
