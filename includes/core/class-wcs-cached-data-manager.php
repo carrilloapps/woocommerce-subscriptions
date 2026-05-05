@@ -65,6 +65,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * Clearing cache when a post is deleted
 	 *
+	 * @deprecated 2.3.0
+	 *
 	 * @param int     $post_id The ID of a post
 	 * @param WP_Post $post    The post object (on certain hooks).
 	 */
@@ -164,6 +166,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * If the log is bigger than a threshold it will be
 	 * truncated to 0 bytes.
+	 *
+	 * @deprecated 6.0.0
 	 */
 	public static function cleanup_logs() {
 		wcs_deprecated_function( __METHOD__, '6.0.0' );
@@ -195,7 +199,8 @@ class WCS_Cached_Data_Manager extends WCS_Cache_Manager {
 	/**
 	 * Check once each week if the log file has exceeded the limits.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.2.9
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v2.2.9
+	 * @deprecated 6.0.0
 	 */
 	public function initialize_cron_check_size() {
 		wcs_deprecated_function( __METHOD__, '6.0.0' );

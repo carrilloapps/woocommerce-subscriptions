@@ -58,7 +58,7 @@ class WCS_Subscriber_Role_Manager {
 			),
 			array(
 				'name'     => __( 'Inactive Subscriber Role', 'woocommerce-subscriptions' ),
-				'desc'     => __( 'If a subscriber\'s subscription is manually cancelled or expires, she will be assigned this role.', 'woocommerce-subscriptions' ),
+				'desc'     => __( 'If a subscriber\'s subscription is manually cancelled or expires, they will be assigned this role.', 'woocommerce-subscriptions' ),
 				'tip'      => '',
 				'id'       => WC_Subscriptions_Admin::$option_prefix . '_cancelled_role',
 				'css'      => 'min-width:150px;',

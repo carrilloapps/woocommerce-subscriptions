@@ -37,15 +37,15 @@ function wcs_date_input( $timestamp = 0, $args = array() ) {
 
 	$date       = ( 0 !== $timestamp ) ? date_i18n( 'Y-m-d', $timestamp ) : '';
 	// translators: date placeholder for input, javascript format
-	$date_input = '<input type="text" class="date-picker woocommerce-subscriptions" placeholder="' . esc_attr__( 'YYYY-MM-DD', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '" id="' . esc_attr( $args['name_attr'] ) . '" maxlength="10" value="' . esc_attr( $date ) . '" pattern="([0-9]{4})-(0[1-9]|1[012])-(##|0[1-9#]|1[0-9]|2[0-9]|3[01])"/>';
+	$date_input = '<input type="text" class="date-picker woocommerce-subscriptions" placeholder="' . esc_attr__( 'YYYY-MM-DD', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '" id="' . esc_attr( $args['name_attr'] ) . '" maxlength="10" value="' . esc_attr( $date ) . '" pattern="([0-9]{4})-(0[1-9]|1[012])-(##|0[1-9#]|1[0-9]|2[0-9]|3[01])" autocomplete="off"/>';
 
 	if ( true === $args['include_time'] ) {
 		$hours        = ( 0 !== $timestamp ) ? date_i18n( 'H', $timestamp ) : '';
 		// translators: hour placeholder for time input, javascript format
-		$hour_input   = '<input type="text" class="hour" placeholder="' . esc_attr__( 'HH', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '_hour" id="' . esc_attr( $args['name_attr'] ) . '_hour" value="' . esc_attr( $hours ) . '" maxlength="2" size="2" pattern="([01]?[0-9]{1}|2[0-3]{1})" />';
+		$hour_input = '<input type="text" class="hour" placeholder="' . esc_attr__( 'HH', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '_hour" id="' . esc_attr( $args['name_attr'] ) . '_hour" value="' . esc_attr( $hours ) . '" maxlength="2" size="2" pattern="([01]?[0-9]{1}|2[0-3]{1})" autocomplete="off" />';
 		$minutes      = ( 0 !== $timestamp ) ? date_i18n( 'i', $timestamp ) : '';
 		// translators: minute placeholder for time input, javascript format
-		$minute_input = '<input type="text" class="minute" placeholder="' . esc_attr__( 'MM', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '_minute" id="' . esc_attr( $args['name_attr'] ) . '_minute" value="' . esc_attr( $minutes ) . '" maxlength="2" size="2" pattern="[0-5]{1}[0-9]{1}" />';
+		$minute_input = '<input type="text" class="minute" placeholder="' . esc_attr__( 'MM', 'woocommerce-subscriptions' ) . '" name="' . esc_attr( $args['name_attr'] ) . '_minute" id="' . esc_attr( $args['name_attr'] ) . '_minute" value="' . esc_attr( $minutes ) . '" maxlength="2" size="2" pattern="[0-5]{1}[0-9]{1}" autocomplete="off" />';
 		$date_input   = sprintf( '%s@%s:%s', $date_input, $hour_input, $minute_input );
 	}
 
@@ -207,7 +207,7 @@ function wcs_maybe_unprefix_key( $key, $prefix = '_' ) {
  * @return string
  */
 function wcs_get_calling_function_name() {
-
+	// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Use of debug_backtrace() is required and necessary here.
 	$backtrace         = version_compare( phpversion(), '5.4.0', '>=' ) ? debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 3 ) : debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ); // the 2nd param for debug_backtrace() was added in PHP 5.4
 	$calling_function  = isset( $backtrace[2]['class'] ) ? $backtrace[2]['class'] : '';
 	$calling_function .= isset( $backtrace[2]['type'] ) ? ( ( '->' == $backtrace[2]['type'] ) ? '::' : $backtrace[2]['type'] ) : ''; // Ternary abuses
@@ -221,7 +221,10 @@ function wcs_get_calling_function_name() {
  *
  * Handy when data cached in a transient will be valid even if the transient has expired.
  *
+ * @deprecated 2.3.3
+ *
  * @param string $transient_key The key used to set/get the transient via get_transient()/set_transient()
+ *
  * @return mixed If data exists in a transient, the value of the transient, else boolean false.
  */
 function wcs_get_transient_even_if_expired( $transient_key ) {

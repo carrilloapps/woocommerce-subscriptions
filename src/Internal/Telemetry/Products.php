@@ -116,20 +116,17 @@ class Products {
 	}
 
 	/**
-	 * Returns an array of objects detailing the number of published subscription products by frequency.
+	 * Returns an associative array detailing the number of published subscription products by frequency.
 	 *
-	 * The return value is an array of objects, with each object containing the properties period, interval and product count:
+	 * The return value is an associative array keyed by "{period}_{interval}" with the count as the value:
 	 *
 	 *     [
-	 *         {
-	 *             period:   string,
-	 *             interval: int,
-	 *             count:    int
-	 *         },
+	 *         'month_1' => 100,
+	 *         'month_2' => 300,
 	 *         ...
 	 *     ]
 	 *
-	 * @return object[]
+	 * @return array
 	 */
 	public function get_product_frequencies(): array {
 		global $wpdb;
@@ -196,18 +193,18 @@ class Products {
 			)
 		);
 
-		foreach ( $results as $index => &$result_set ) {
+		$formatted = array();
+
+		foreach ( $results as $result_set ) {
 			if ( empty( $result_set->period ) || empty( $result_set->interval ) ) {
-				unset( $results[ $index ] );
 				continue;
 			}
 
-			$result_set->period   = (string) $result_set->period;
-			$result_set->interval = (int) $result_set->interval;
-			$result_set->count    = (int) $result_set->count;
+			$key               = (string) $result_set->period . '_' . (int) $result_set->interval;
+			$formatted[ $key ] = (int) $result_set->count;
 		}
 
-		return array_values( $results );
+		return $formatted;
 	}
 
 	/**

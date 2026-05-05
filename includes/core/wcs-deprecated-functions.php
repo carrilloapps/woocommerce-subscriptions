@@ -32,6 +32,7 @@ function wcs_doing_it_wrong( $function, $message, $version ) {
 		// Reimplement wc_doing_it_wrong() when WC 3.0 is not active
 		if ( wp_doing_ajax() ) {
 			do_action( 'doing_it_wrong_run', $function, $message, $version );
+			// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- error_log is fine for logging purposes.
 			error_log( "{$function} was called incorrectly. {$message}. This message was added in version {$version}." );
 		} else {
 			_doing_it_wrong( esc_attr( $function ), esc_attr( $message ), esc_attr( $version ) );
@@ -59,6 +60,7 @@ function wcs_deprecated_function( $function, $version, $replacement = null ) {
 			do_action( 'deprecated_function_run', $function, $replacement, $version );
 			$log_string  = "The {$function} function is deprecated since version {$version}.";
 			$log_string .= $replacement ? " Replace with {$replacement}." : '';
+			// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- error_log is fine for logging purposes.
 			error_log( $log_string );
 		} else {
 			_deprecated_function( esc_attr( $function ), esc_attr( $version ), esc_attr( $replacement ) );
@@ -77,6 +79,7 @@ function wcs_deprecated_function( $function, $version, $replacement = null ) {
 function wcs_deprecated_argument( $function, $version, $message = null ) {
 	if ( wp_doing_ajax() ) {
 		do_action( 'deprecated_argument_run', $function, $message, $version );
+		// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- error_log is fine for logging purposes.
 		error_log( "{$function} was called with an argument that is deprecated since version {$version}. {$message}" );
 	} else {
 		_deprecated_argument( esc_attr( $function ), esc_attr( $version ), esc_attr( $message ) );
@@ -281,6 +284,7 @@ function wcs_deprecated_hook( $hook, $version, $replacement = null, $message = n
 			$log_string = "{$hook} is deprecated since version {$version}";
 			$log_string .= $replacement ? "! Use {$replacement} instead." : ' with no alternative available.';
 
+			// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- error_log is fine for logging purposes.
 			error_log( $log_string . $message );
 		} else {
 			wc_deprecated_hook( $hook, $version, $replacement, $message );

@@ -65,11 +65,11 @@ class Orders {
 	 * @return array Associative array with structure:
 	 *   [
 	 *     'stripe' => [
-	 *       ['month' => '2024-01', 'count' => 45, 'gross' => 3750.25],
-	 *       ['month' => '2024-02', 'count' => 50, 'gross' => 4000.00],
+	 *       '2024-01' => ['count' => 45, 'gross' => 3750.25],
+	 *       '2024-02' => ['count' => 50, 'gross' => 4000.00],
 	 *     ],
 	 *     'paypal' => [
-	 *       ['month' => '2024-01', 'count' => 30, 'gross' => 2500.00],
+	 *       '2024-01' => ['count' => 30, 'gross' => 2500.00],
 	 *     ],
 	 *   ]
 	 */
@@ -96,22 +96,22 @@ class Orders {
 	 * @return array Associative array with structure:
 	 *   [
 	 *     'store_gross' => [
-	 *       ['month' => '2025-01', 'gross' => 1250.50],
-	 *       ['month' => '2025-02', 'gross' => 1500.75],
+	 *       '2025-01' => 1250.50,
+	 *       '2025-02' => 1500.75,
 	 *     ],
 	 *     'initial' => [
-	 *       ['month' => '2025-01', 'count' => 15, 'gross' => 750.00, 'non_zero_count' => 12, 'quantity' => 20, 'non_zero_quantity' => 18],
-	 *       ['month' => '2025-02', 'count' => 18, 'gross' => 900.00, 'non_zero_count' => 15, 'quantity' => 24, 'non_zero_quantity' => 22],
+	 *       '2025-01' => ['count' => 15, 'gross' => 750.00, 'non_zero_count' => 12, 'quantity' => 20, 'non_zero_quantity' => 18],
+	 *       '2025-02' => ['count' => 18, 'gross' => 900.00, 'non_zero_count' => 15, 'quantity' => 24, 'non_zero_quantity' => 22],
 	 *     ],
 	 *     'renewal' => [
-	 *       ['month' => '2025-01', 'count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
-	 *       ['month' => '2025-02', 'count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
+	 *       '2025-01' => ['count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
+	 *       '2025-02' => ['count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
 	 *     ],
 	 *     'switch' => [
-	 *       ['month' => '2025-01', 'count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
+	 *       '2025-01' => ['count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
 	 *     ],
 	 *     'resubscribe' => [
-	 *       ['month' => '2025-01', 'count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
+	 *       '2025-01' => ['count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
 	 *     ],
 	 *   ]
 	 */
@@ -320,17 +320,17 @@ class Orders {
 	 * @param string $start_date Start date in 'Y-m-d H:i:s' format.
 	 * @param string $end_date   End date in 'Y-m-d H:i:s' format.
 	 *
-	 * @return array Nested array grouped by order type, with monthly data as flat arrays. Structure:
+	 * @return array Nested array grouped by order type, with monthly data keyed by month. Structure:
 	 *   [
 	 *     'renewal' => [
-	 *       ['month' => '2025-01', 'count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
-	 *       ['month' => '2025-02', 'count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
+	 *       '2025-01' => ['count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
+	 *       '2025-02' => ['count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
 	 *     ],
 	 *     'switch' => [
-	 *       ['month' => '2025-01', 'count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
+	 *       '2025-01' => ['count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
 	 *     ],
 	 *     'resubscribe' => [
-	 *       ['month' => '2025-01', 'count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
+	 *       '2025-01' => ['count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
 	 *     ],
 	 *   ]
 	 */
@@ -353,11 +353,11 @@ class Orders {
 	 * @return array Formatted array with structure:
 	 *   [
 	 *     'stripe' => [
-	 *       ['month' => '2024-01', 'count' => 45, 'gross' => 3750.25],
-	 *       ['month' => '2024-02', 'count' => 50, 'gross' => 4000.00],
+	 *       '2024-01' => ['count' => 45, 'gross' => 3750.25],
+	 *       '2024-02' => ['count' => 50, 'gross' => 4000.00],
 	 *     ],
 	 *     'paypal' => [
-	 *       ['month' => '2024-01', 'count' => 30, 'gross' => 2500.00],
+	 *       '2024-01' => ['count' => 30, 'gross' => 2500.00],
 	 *     ],
 	 *   ]
 	 */
@@ -370,16 +370,15 @@ class Orders {
 		}
 
 		foreach ( $results as $result ) {
-			$payment_method = $result->payment_method ?? '';
+			$payment_method = empty( $result->payment_method ) ? 'unknown_method' : $result->payment_method;
 
 			// Initialize array for this payment method if it doesn't exist
 			if ( ! isset( $data[ $payment_method ] ) ) {
 				$data[ $payment_method ] = array();
 			}
 
-			// Add monthly data to this payment method's array
-			$data[ $payment_method ][] = array(
-				'month' => $result->month,
+			// Add monthly data to this payment method's array, keyed by month
+			$data[ $payment_method ][ $result->month ] = array(
 				'count' => (int) $result->count,
 				'gross' => round( (float) $result->gross, 2 ),
 			);
@@ -399,14 +398,14 @@ class Orders {
 	 * @return array Formatted array with structure:
 	 *   [
 	 *     'renewal' => [
-	 *       ['month' => '2025-01', 'count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
-	 *       ['month' => '2025-02', 'count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
+	 *       '2025-01' => ['count' => 10, 'gross' => 500.00, 'non_zero_count' => 8],
+	 *       '2025-02' => ['count' => 12, 'gross' => 600.00, 'non_zero_count' => 10],
 	 *     ],
 	 *     'switch' => [
-	 *       ['month' => '2025-01', 'count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
+	 *       '2025-01' => ['count' => 5, 'gross' => 250.00, 'non_zero_count' => 4],
 	 *     ],
 	 *     'resubscribe' => [
-	 *       ['month' => '2025-01', 'count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
+	 *       '2025-01' => ['count' => 2, 'gross' => 100.00, 'non_zero_count' => 2],
 	 *     ],
 	 *   ]
 	 */
@@ -438,8 +437,8 @@ class Orders {
 				continue;
 			}
 
-			// Add monthly data to this order type's array
-			$data[ $order_type_name ][] = $this->format_monthly_order_metrics( $result );
+			// Add monthly data to this order type's array, keyed by month
+			$data[ $order_type_name ][ $result->month ] = $this->format_monthly_order_metrics( $result );
 		}
 
 		return $data;
@@ -458,7 +457,6 @@ class Orders {
 	 */
 	private function format_monthly_order_metrics( object $row ): array {
 		return array(
-			'month'          => $row->month,
 			'count'          => (int) $row->count,
 			'gross'          => round( (float) $row->gross, 2 ),
 			'non_zero_count' => (int) $row->non_zero_count,
@@ -472,10 +470,10 @@ class Orders {
 	 *
 	 * @param array $results Database result objects from get_hpos_store_gmv() or get_cpt_store_gmv().
 	 *
-	 * @return array Flat array of monthly entries with structure:
+	 * @return array Associative array keyed by month with structure:
 	 *   [
-	 *     ['month' => '2025-01', 'gross' => 1250.50],
-	 *     ['month' => '2025-02', 'gross' => 1500.75],
+	 *     '2025-01' => 1250.50,
+	 *     '2025-02' => 1500.75,
 	 *   ]
 	 */
 	private function format_aggregate_monthly_store_gmv( array $results ): array {
@@ -487,10 +485,7 @@ class Orders {
 		}
 
 		foreach ( $results as $result ) {
-			$formatted[] = array(
-				'month' => $result->month,
-				'gross' => round( (float) $result->gross, 2 ),
-			);
+			$formatted[ $result->month ] = round( (float) $result->gross, 2 );
 		}
 
 		return $formatted;
@@ -628,10 +623,10 @@ class Orders {
 	 * @param array $order_data   Monthly order results from SQL with month, count, gross, non_zero_count.
 	 * @param array $quantity_data Monthly quantity results from SQL with month, total_quantity, non_zero_quantity.
 	 *
-	 * @return array Flat array of monthly entries with structure:
+	 * @return array Associative array keyed by month with structure:
 	 *   [
-	 *     ['month' => '2025-01', 'count' => 10, 'gross' => 500.00, 'non_zero_count' => 8, 'quantity' => 15, 'non_zero_quantity' => 12],
-	 *     ['month' => '2025-02', 'count' => 12, 'gross' => 600.00, 'non_zero_count' => 10, 'quantity' => 18, 'non_zero_quantity' => 15],
+	 *     '2025-01' => ['count' => 10, 'gross' => 500.00, 'non_zero_count' => 8, 'quantity' => 15, 'non_zero_quantity' => 12],
+	 *     '2025-02' => ['count' => 12, 'gross' => 600.00, 'non_zero_count' => 10, 'quantity' => 18, 'non_zero_quantity' => 15],
 	 *   ]
 	 */
 	private function format_parent_order_data( array $order_data, array $quantity_data ): array {
@@ -646,7 +641,7 @@ class Orders {
 			);
 		}
 
-		// Build final monthly array
+		// Build final monthly array, keyed by month
 		foreach ( $order_data as $order_row ) {
 			$month = $order_row->month;
 
@@ -660,7 +655,7 @@ class Orders {
 			$entry                      = $this->format_monthly_order_metrics( $order_row );
 			$entry['quantity']          = $qty_info['quantity'];
 			$entry['non_zero_quantity'] = $qty_info['non_zero_quantity'];
-			$formatted[]                = $entry;
+			$formatted[ $month ]        = $entry;
 		}
 
 		return $formatted;

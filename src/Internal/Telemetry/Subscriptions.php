@@ -259,20 +259,17 @@ class Subscriptions {
 	}
 
 	/**
-	 * Returns an array of objects detailing the number of (active) subscriptions by frequency.
+	 * Returns an associative array detailing the number of (active) subscriptions by frequency.
 	 *
-	 * The return value is an array of objects, with each object containing the properties period, interval and count:
+	 * The return value is an associative array keyed by "{period}_{interval}" with the count as the value:
 	 *
 	 *     [
-	 *         {
-	 *             period:   string,
-	 *             interval: int,
-	 *             count:    int
-	 *         },
+	 *         'month_1' => 100,
+	 *         'month_2' => 300,
 	 *         ...
 	 *     ]
 	 *
-	 * @return object[]
+	 * @return array
 	 */
 	public function get_subscriptions_by_frequency(): array {
 		$results = (array) (
@@ -281,13 +278,18 @@ class Subscriptions {
 				: $this->get_cpt_subscriptions_by_frequency()
 		);
 
-		foreach ( $results as &$result_set ) {
-			$result_set->period   = (string) $result_set->period;
-			$result_set->interval = (int) $result_set->interval;
-			$result_set->count    = (int) $result_set->count;
+		$formatted = array();
+
+		foreach ( $results as $result_set ) {
+			if ( empty( $result_set->period ) || empty( $result_set->interval ) || empty( $result_set->count ) ) {
+				continue;
+			}
+
+			$key               = (string) $result_set->period . '_' . (int) $result_set->interval;
+			$formatted[ $key ] = (int) $result_set->count;
 		}
 
-		return $results;
+		return $formatted;
 	}
 
 	/**
@@ -369,39 +371,42 @@ class Subscriptions {
 	/**
 	 * Gets a count of subscriptions grouped by payment method.
 	 *
-	 * The return value is an array of objects, with each object containing the properties payment_method and order_count:
+	 * The return value is an associative array keyed by payment method:
 	 *
 	 *     [
-	 *         {
-	 *             payment_method:              string,
-	 *             active_subscription_count:   int,
-	 *             inactive_subscription_count: int,
-	 *             method_renews_off_site:      string, # 'yes'|'no'|'unknown'
-	 *             manual_renewal_only:         string, # 'yes'|'no'|'unknown'
-	 *         },
+	 *         'stripe' => [
+	 *             'active_subscription_count'   => 10,
+	 *             'inactive_subscription_count' => 5,
+	 *             'method_renews_off_site'      => 'yes'|'no'|'unknown',
+	 *             'manual_renewal_only'         => 'yes'|'no'|'unknown',
+	 *         ],
 	 *         ...
 	 *     ]
 	 *
 	 * Note that the method_renews_off_site property is set if the gateway reports that it supports off-site renewal
 	 * payment ('gateway_scheduled_payments'). See also payment_method_renews_off_site() for caveats on this.
 	 *
-	 * @return object[] Array of objects containing payment_method and order_count.
+	 * @return array Associative array keyed by payment method.
 	 */
 	public function get_subscriptions_by_payment_method(): array {
 		$results = $this->is_hpos
 			? $this->get_hpos_subscriptions_by_payment_method()
 			: $this->get_cpt_subscriptions_by_payment_method();
 
-		foreach ( $results as &$result_set ) {
-			$gateway_properties                      = $this->payment_method_properties( $result_set->payment_method );
-			$result_set->payment_method              = (string) $result_set->payment_method;
-			$result_set->active_subscription_count   = (int) $result_set->active_subscription_count;
-			$result_set->inactive_subscription_count = (int) $result_set->inactive_subscription_count;
-			$result_set->method_renews_off_site      = $gateway_properties['gateway_scheduled_payments'];
-			$result_set->manual_renewal_only         = $gateway_properties['manual_renewal_only'];
+		$formatted = array();
+
+		foreach ( $results as $result_set ) {
+			$payment_method               = empty( $result_set->payment_method ) ? 'unknown_method' : (string) $result_set->payment_method;
+			$gateway_properties           = $this->payment_method_properties( $result_set->payment_method );
+			$formatted[ $payment_method ] = array(
+				'active_subscription_count'   => (int) $result_set->active_subscription_count,
+				'inactive_subscription_count' => (int) $result_set->inactive_subscription_count,
+				'method_renews_off_site'      => $gateway_properties['gateway_scheduled_payments'],
+				'manual_renewal_only'         => $gateway_properties['manual_renewal_only'],
+			);
 		}
 
-		return $results;
+		return $formatted;
 	}
 
 	/**

@@ -40,6 +40,7 @@ class WC_Subscriptions_Email_Preview {
 				$email->subscriptions = [ $this->get_dummy_subscription() ];
 				break;
 			case 'WCS_Email_Cancelled_Subscription':
+			case 'WCS_Email_Reactivated_Subscription':
 			case 'WCS_Email_Expired_Subscription':
 			case 'WCS_Email_On_Hold_Subscription':
 			case 'WCS_Email_Customer_Notification_Auto_Trial_Expiration':

@@ -399,7 +399,7 @@ class WCS_Cart_Renewal {
 				continue;
 			}
 
-			if ( isset( $item[ $this->cart_item_key ]['renewal_order_id'] ) && ! 'shop_order' === WC_Data_Store::load( 'order' )->get_order_type( $item[ $this->cart_item_key ]['renewal_order_id'] ) ) {
+			if ( isset( $item[ $this->cart_item_key ]['renewal_order_id'] ) && ! wc_get_order( $item[ $this->cart_item_key ]['renewal_order_id'] ) ) {
 				$cart->remove_cart_item( $key );
 				$removed_count_order++;
 				continue;
@@ -729,8 +729,11 @@ class WCS_Cart_Renewal {
 	public function items_removed_title( $product_title, $cart_item ) {
 
 		if ( isset( $cart_item[ $this->cart_item_key ]['subscription_id'] ) ) {
-			$subscription  = $this->get_order( $cart_item );
-			$product_title = ( count( $subscription->get_items() ) > 1 ) ? esc_html_x( 'All linked subscription items were', 'Used in WooCommerce by removed item notification: "_All linked subscription items were_ removed. Undo?" Filter for item title.', 'woocommerce-subscriptions' ) : $product_title;
+			$subscription = $this->get_order( $cart_item );
+
+			if ( $subscription && count( $subscription->get_items() ) > 1 ) {
+				$product_title = esc_html_x( 'All linked subscription items were', 'Used in WooCommerce by removed item notification: "_All linked subscription items were_ removed. Undo?" Filter for item title.', 'woocommerce-subscriptions' );
+			}
 		}
 
 		return $product_title;
@@ -977,7 +980,7 @@ class WCS_Cart_Renewal {
 			$cart_item = $this->cart_contains();
 		}
 
-		if ( false !== $cart_item && isset( $cart_item[ $this->cart_item_key ] ) ) {
+		if ( false !== $cart_item && isset( $cart_item[ $this->cart_item_key ]['renewal_order_id'] ) ) {
 			$order = wc_get_order( $cart_item[ $this->cart_item_key ]['renewal_order_id'] );
 		}
 

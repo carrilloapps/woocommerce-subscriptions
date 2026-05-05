@@ -95,9 +95,12 @@ class WC_Subscriptions_Checkout {
 
 		WC_Subscriptions_Cart::set_global_recurring_shipping_packages();
 
+		// Save the initial order cart.
+		$current_cart = WC()->cart;
 		// Create new subscriptions for each group of subscription products in the cart (that is not a renewal)
 		foreach ( WC()->cart->recurring_carts as $recurring_cart ) {
-
+			// WC_Shipping_Free_Shipping::is_available access the global WC()->cart object, so we need to set it to the recurring cart for the duration of the function.
+			WC()->cart    = $recurring_cart;
 			$subscription = self::create_subscription( $order, $recurring_cart, $posted_data ); // Exceptions are caught by WooCommerce
 
 			if ( is_wp_error( $subscription ) ) {
@@ -106,6 +109,9 @@ class WC_Subscriptions_Checkout {
 
 			do_action( 'woocommerce_checkout_subscription_created', $subscription, $order, $recurring_cart );
 		}
+
+		// Restore the initial order cart.
+		WC()->cart = $current_cart;
 
 		do_action( 'subscriptions_created_for_order', $order ); // Backward compatibility
 	}
@@ -244,6 +250,11 @@ class WC_Subscriptions_Checkout {
 			$subscription->set_shipping_tax( $cart->shipping_tax_total );
 			$subscription->set_total( $cart->total );
 
+			// Calculate Cost of Goods Sold if the feature is available and enabled (WC 9.5+).
+			if ( wcs_is_wc_feature_enabled( 'cost_of_goods_sold' ) ) {
+				$subscription->calculate_cogs_total_value();
+			}
+
 			// Hook to adjust subscriptions before saving with WC 3.0+ (matches WC 3.0's new 'woocommerce_checkout_create_order' hook)
 			do_action( 'woocommerce_checkout_create_subscription', $subscription, $posted_data, $order, $cart );
 
@@ -307,22 +318,14 @@ class WC_Subscriptions_Checkout {
 						)
 					);
 
-					// Backwards compatibility for sites running WC pre 3.4 which stored shipping method and instance ID in a single meta row.
-					if ( wcs_is_woocommerce_pre( '3.4' ) ) {
-						$item->set_method_id( $shipping_rate->id );
-					} else {
-						$item->set_method_id( $shipping_rate->method_id );
-						$item->set_instance_id( $shipping_rate->instance_id );
-					}
+					$item->set_method_id( $shipping_rate->method_id );
+					$item->set_instance_id( $shipping_rate->instance_id );
 
 					foreach ( $shipping_rate->get_meta_data() as $key => $value ) {
 						$item->add_meta_data( $key, $value, true );
 					}
 
 					$subscription->add_item( $item );
-
-					$item->save(); // We need the item ID for old hooks, this can be removed once support for WC < 3.0 is dropped
-					wc_do_deprecated_action( 'woocommerce_subscriptions_add_recurring_shipping_order_item', array( $subscription->get_id(), $item->get_id(), $package_key ), '2.2.0', 'CRUD and woocommerce_checkout_create_subscription_shipping_item action instead' );
 
 					do_action( 'woocommerce_checkout_create_order_shipping_item', $item, $package_key, $package, $subscription ); // WC 3.0+ will also trigger the deprecated 'woocommerce_add_shipping_order_item' hook
 					do_action( 'woocommerce_checkout_create_subscription_shipping_item', $item, $package_key, $package, $subscription );

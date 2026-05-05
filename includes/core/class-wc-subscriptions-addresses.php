@@ -233,6 +233,7 @@ class WC_Subscriptions_Addresses {
 			if ( $subscription->has_status( array( 'active', 'on-hold' ) ) ) {
 				// Update the billing address with the new contact information
 				wcs_set_order_address( $subscription, $contact_info, 'billing' );
+				$subscription->add_order_note( _x( 'Billing contact updated by the subscriber from their account page.', 'order note left on subscription after user action', 'woocommerce-subscriptions' ) );
 				$subscription->save();
 			}
 		}
@@ -262,12 +263,17 @@ class WC_Subscriptions_Addresses {
 			}
 		}
 
+		$address_update_note = 'billing' === $address_type
+			? _x( 'Billing address updated by the subscriber from their account page.', 'order note left on subscription after user action', 'woocommerce-subscriptions' )
+			: _x( 'Shipping address updated by the subscriber from their account page.', 'order note left on subscription after user action', 'woocommerce-subscriptions' );
+
 		if ( isset( $_POST['update_all_subscriptions_addresses'] ) ) {
 			$users_subscriptions = wcs_get_users_subscriptions( $user_id );
 
 			foreach ( $users_subscriptions as $subscription ) {
 				if ( $subscription->has_status( array( 'active', 'on-hold' ) ) ) {
 					wcs_set_order_address( $subscription, $address, $address_type );
+					$subscription->add_order_note( $address_update_note );
 					$subscription->save();
 				}
 			}
@@ -277,6 +283,7 @@ class WC_Subscriptions_Addresses {
 			// Update the address only if the user actually owns the subscription
 			if ( $subscription && self::can_user_edit_subscription_address( $subscription->get_id() ) ) {
 				wcs_set_order_address( $subscription, $address, $address_type );
+				$subscription->add_order_note( $address_update_note );
 				$subscription->save();
 
 				wp_safe_redirect( $subscription->get_view_order_url() );
@@ -313,9 +320,11 @@ class WC_Subscriptions_Addresses {
 	/**
 	 * Update the address fields on an order
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.3
+	 * @deprecated 2.2.0 Use WC_Order::set_address() or WC_Subscription::set_address()
+	 *
 	 * @param array $subscription A WooCommerce Subscription array
 	 * @param array $address_fields Locale aware address fields of the form returned by WC_Countries->get_address_fields() for a given country
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3
 	 */
 	public static function maybe_update_order_address( $subscription, $address_fields ) {
 		_deprecated_function( __METHOD__, '2.0', 'WC_Order::set_address() or WC_Subscription::set_address()' );

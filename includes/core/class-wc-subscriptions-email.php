@@ -10,6 +10,10 @@
  * @author     Prospress
  */
 class WC_Subscriptions_Email {
+	/**
+	 * Used to capture the ID of a subscription that is potentially being reactivated.
+	 */
+	private static int $subscription_being_reactivated_id = -1;
 
 	/**
 	 * List of all core subscription email classes.
@@ -27,6 +31,7 @@ class WC_Subscriptions_Email {
 		'WCS_Email_Cancelled_Subscription'         => true,
 		'WCS_Email_Expired_Subscription'           => true,
 		'WCS_Email_On_Hold_Subscription'           => true,
+		'WCS_Email_Reactivated_Subscription'       => true,
 	];
 
 	/**
@@ -102,6 +107,8 @@ class WC_Subscriptions_Email {
 			return;
 		}
 
+		add_action( 'woocommerce_before_customer_changed_subscription_to_active', __CLASS__ . '::watch_for_reactivations' );
+		add_action( 'woocommerce_customer_changed_subscription_to_active', __CLASS__ . '::maybe_send_reactivation_email' );
 		add_action( 'woocommerce_subscription_status_updated', __CLASS__ . '::send_cancelled_email', 10 );
 		add_action( 'woocommerce_subscription_status_expired', __CLASS__ . '::send_expired_email', 10 );
 		add_action( 'woocommerce_customer_changed_subscription_to_on-hold', __CLASS__ . '::send_on_hold_email', 10 );
@@ -159,6 +166,49 @@ class WC_Subscriptions_Email {
 
 		if ( wcs_order_contains_renewal( $order_id ) ) {
 			do_action( current_filter() . '_renewal_notification', $order_id );
+		}
+	}
+
+	/**
+	 * Listen for subscriptions being reactivated by the customer (not the admin).
+	 *
+	 * This method expects to run when a customer reactivates a subscription, which specifically means the customer has
+	 * taken action to move a subscription from 'pending-cancel' to 'active'.
+	 *
+	 * @internal This method may be moved or renamed without notice.
+	 * @since    8.4.0
+	 *
+	 * @param WC_Subscription|mixed $subscription The subscription being examined.
+	 */
+	public static function watch_for_reactivations( $subscription ) {
+		// If we aren't working with an actual subscription (anything can be passed to a callback), or if the
+		// subscription is not pending-cancel, then we don't want to send an email.
+		if ( ! $subscription instanceof WC_Subscription || ! $subscription->has_status( 'pending-cancel' ) ) {
+			self::$subscription_being_reactivated_id = -1;
+			return;
+		}
+
+		// Capture the subscription ID, so that we can be confident we are examining the same subscription from our
+		// second callback (::maybe_send_reactivation_email()).
+		self::$subscription_being_reactivated_id = $subscription->get_id();
+	}
+
+	/**
+	 * Trigger the email reactivation email.
+	 *
+	 * This method expects to run when a customer reactivates a subscription, which specifically means the customer has
+	 * taken action to move a subscription from 'pending-cancel' to 'active'.
+	 *
+	 * @internal This method may be moved or renamed without notice.
+	 * @since    8.4.0
+	 *
+	 * @param WC_Subscription|mixed $subscription The subscription being examined.
+	 */
+	public static function maybe_send_reactivation_email( $subscription ) {
+		if ( $subscription->get_id() === self::$subscription_being_reactivated_id ) {
+			WC()->mailer();
+			do_action( 'reactivated_subscription_notification', $subscription );
+			self::$subscription_being_reactivated_id = -1;
 		}
 	}
 

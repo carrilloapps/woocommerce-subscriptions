@@ -334,12 +334,18 @@ class WC_Subscriptions_Change_Payment_Gateway {
 			$new_payment_method = wc_clean( $_POST['payment_method'] );
 			$notice = $subscription->has_payment_gateway() ? __( 'Payment method updated.', 'woocommerce-subscriptions' ) : __( 'Payment method added.', 'woocommerce-subscriptions' );
 
+			// Compute the desired renewal mode before update_payment_method() runs, because that call goes
+			// through WC_Subscription::set_payment_method() which may flip requires_manual_renewal as a side
+			// effect. Applying the unified rule afterwards needs to see the subscriber's pre-change preference.
+			// @phpstan-ignore property.notFound
+			$available_gateways          = WC()->payment_gateways->get_available_payment_gateways();
+			$new_gateway_for_rule        = isset( $available_gateways[ $new_payment_method ] ) ? $available_gateways[ $new_payment_method ] : null;
+			$new_requires_manual_renewal = wcs_should_require_manual_renewal( $subscription, $new_gateway_for_rule );
+
 			// Allow some payment gateways which can't process the payment immediately, like PayPal, to do it later after the payment/sign-up is confirmed
 			if ( apply_filters( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', true, $new_payment_method, $subscription ) ) {
 				self::update_payment_method( $subscription, $new_payment_method );
 			}
-
-			$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 			// Validate
 			$available_gateways[ $new_payment_method ]->validate_fields();
@@ -377,7 +383,7 @@ class WC_Subscriptions_Change_Payment_Gateway {
 					return;
 				}
 
-				$subscription->set_requires_manual_renewal( false );
+				$subscription->set_requires_manual_renewal( $new_requires_manual_renewal );
 				$subscription->save();
 
 				// Does the customer want all current subscriptions to be updated to this payment method?
@@ -462,9 +468,19 @@ class WC_Subscriptions_Change_Payment_Gateway {
 			// Clear any stale _delayed_update_payment_method_all meta existing on the users other subscriptions if it exists.
 			$user_subscription->delete_meta_data( '_delayed_update_payment_method_all' );
 
+			// Capture the subscriber's existing renewal preference so it can be preserved across this bulk
+			// payment-method update. The "Use this payment method for all of my current subscriptions" option
+			// is about syncing gateways, not about changing each subscription's auto-renew setting.
+			$was_manual = $user_subscription->get_requires_manual_renewal();
+
 			self::update_payment_method( $user_subscription, $new_payment_method, $payment_meta_table );
 
-			$user_subscription->set_requires_manual_renewal( false );
+			// Restore the subscriber's original manual-renewal preference if set_payment_method() flipped it
+			// to automatic as a side effect. For subscriptions that were already automatic, leave the setter's
+			// decision alone — it correctly flips to manual when the new gateway can't support automatic renewals.
+			if ( $was_manual ) {
+				$user_subscription->set_requires_manual_renewal( true );
+			}
 			$user_subscription->save();
 		}
 
@@ -871,11 +887,12 @@ class WC_Subscriptions_Change_Payment_Gateway {
 	/**
 	 * Update the recurring payment method on a subscription order.
 	 *
+	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.4
+	 * @deprecated 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+	 *
 	 * @param string $subscription_key The subscription key.
 	 * @param WC_Order $order The order.
 	 * @param string $new_payment_method The new payment method.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.4
-	 * @deprecated 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
 	 */
 	public static function update_recurring_payment_method( $subscription_key, $order, $new_payment_method ) {
 		_deprecated_function( __METHOD__, '2.0', __CLASS__ . '::update_payment_method()' );
@@ -913,6 +930,8 @@ class WC_Subscriptions_Change_Payment_Gateway {
 	 * For the recurring payment method to be changeable, the subscription must be active, have future (automatic) payments
 	 * and use a payment gateway which allows the subscription to be cancelled.
 	 *
+	 * @deprecated 2.0 Use WC_Subscriptions_Change_Payment_Gateway::can_subscription_be_updated_to_new_payment_method() instead.
+	 *
 	 * @param bool $subscription_can_be_changed Flag of whether the subscription can be changed to
 	 * @param string $new_status_or_meta The status or meta data you want to change th subscription to. Can be 'active', 'on-hold', 'cancelled', 'expired', 'trash', 'deleted', 'failed', 'new-payment-date' or some other value attached to the 'woocommerce_can_subscription_be_changed_to' filter.
 	 * @param object $args Set of values used in @see WC_Subscriptions_Manager::can_subscription_be_changed_to() for determining if a subscription can be changes, include:
@@ -938,7 +957,6 @@ class WC_Subscriptions_Change_Payment_Gateway {
 	 * Attach WooCommerce version dependent hooks
 	 *
 	 * @since 1.0.0
-	 *
 	 * @deprecated 1.6.4
 	 */
 	public static function attach_dependant_hooks() {

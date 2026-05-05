@@ -1045,6 +1045,7 @@ class WC_Subscriptions_Order {
 	 * its own WC_Subscription object.
 	 *
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.5.10
+	 * @deprecated 2.0 Use WC_Subscription::is_editable() instead.
 	 */
 	public static function is_order_editable( $is_editable, $order ) {
 		_deprecated_function( __METHOD__, '2.0', 'WC_Subscription::is_editable()' );
@@ -1476,10 +1477,13 @@ class WC_Subscriptions_Order {
 	/**
 	 * Checks an order to see if it contains a subscription.
 	 *
+	 * @version    1.0.0 Migrated from WooCommerce Subscriptions v1.2
+	 * @since      1.0.0 Migrated from WooCommerce Subscriptions v1.0
+	 * @deprecated 2.0 Use wcs_order_contains_subscription() instead.
+	 *
 	 * @param mixed $order A WC_Order object or the ID of the order which the subscription was purchased in.
+	 *
 	 * @return bool True if the order contains a subscription, otherwise false.
-	 * @version 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.0
 	 */
 	public static function order_contains_subscription( $order ) {
 		_deprecated_function( __METHOD__, '2.0', 'wcs_order_contains_subscription( $order )' );
@@ -1492,7 +1496,8 @@ class WC_Subscriptions_Order {
 	 *
 	 * With the advent of a separate subscription object in 2.0, this became unnecessary.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.4
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.4
+	 * @deprecated 2.0
 	 */
 	public static function set_recurring_payment_method( $order_id ) {
 		_deprecated_function( __METHOD__, '2.0' );
@@ -1502,8 +1507,10 @@ class WC_Subscriptions_Order {
 	 * Checks if an order contains an in active subscription and if it does, denies download access
 	 * to files purchased on the order.
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.3
+	 * @deprecated 2.0
+	 *
 	 * @return bool False if the order contains a subscription that has expired or is cancelled/on-hold, otherwise, the original value of $download_permitted
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.3
 	 */
 	public static function is_download_permitted( $download_permitted, $order ) {
 		_deprecated_function( __METHOD__, '2.0' );
@@ -1516,10 +1523,13 @@ class WC_Subscriptions_Order {
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
 	 *
-	 * @param WC_Order_Item $item
-	 * @param int $item_id An order_item_id as returned by the insert statement of @see woocommerce_add_order_item()
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2.5
 	 * @version 1.0.0 - Migrated from WooCommerce Subscriptions v1.4
+	 * @deprecated 2.0
+	 *
+	 * @param WC_Order_Item $item
+	 * @param int $item_id An order_item_id as returned by the insert statement of @see woocommerce_add_order_item()
+	 *
 	 * @return void
 	 */
 	public static function prefill_order_item_meta( $item, $item_id ) {
@@ -1534,7 +1544,10 @@ class WC_Subscriptions_Order {
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
 	 *
 	 * Based on the @see woocommerce_calc_line_taxes() function.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2.4
+	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2.4
+	 * @deprecated 2.0
+	 *
 	 * @return void
 	 */
 	public static function calculate_recurring_line_taxes() {
@@ -1549,6 +1562,8 @@ class WC_Subscriptions_Order {
 	 *
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
+	 *
+	 * @deprecated 2.0
 	 *
 	 * @return void
 	 */
@@ -1565,6 +1580,8 @@ class WC_Subscriptions_Order {
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
 	 *
+	 * @deprecated 2.0
+	 *
 	 * @return void
 	 */
 	public static function add_line_tax() {
@@ -1577,6 +1594,8 @@ class WC_Subscriptions_Order {
 	 *
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
+	 *
+	 * @deprecated 2.0
 	 *
 	 * @param int $post_id The post ID of the shop_order post object.
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2.4
@@ -1594,6 +1613,8 @@ class WC_Subscriptions_Order {
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
 	 *
+	 * @deprecated 2.0
+	 *
 	 * @param int $post_id The ID of the post which is the WC_Order object.
 	 * @param Object $post The post object of the order.
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.1
@@ -1608,6 +1629,8 @@ class WC_Subscriptions_Order {
 	 * Deprecated because editing a subscription's values is now done from the Edit Subscription screen and those values
 	 * are stored against a 'shop_subscription' post, not the 'shop_order' used to purchase the subscription.
 	 *
+	 * @deprecated 2.0
+	 *
 	 * @param int $post_id The ID of the post which is the WC_Order object.
 	 * @param Object $post The post object of the order.
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2.4
@@ -1619,6 +1642,8 @@ class WC_Subscriptions_Order {
 	/**
 	 * Checks if a subscription requires manual payment because the payment gateway used to purchase the subscription
 	 * did not support automatic payments at the time of the subscription sign up. Or because we're on a staging site.
+	 *
+	 * @deprecated 2.0 Use WC_Subscription::is_manual() instead.
 	 *
 	 * @param mixed $order A WC_Order object or the ID of the order which the subscription was purchased in.
 	 * @return bool True if the subscription exists and requires manual payments, false if the subscription uses automatic payments (defaults to false for backward compatibility).
@@ -1645,6 +1670,8 @@ class WC_Subscriptions_Order {
 	 * This may return 0 if there is a free trial period and no sign up fee, otherwise it will be the sum of the sign up
 	 * fee and price per period. This function should be used by payment gateways for the initial payment.
 	 *
+	 * @deprecated 2.0 Use WC_Order::get_total() instead.
+	 *
 	 * @param mixed $order A WC_Order object or the ID of the order which the subscription was purchased in.
 	 * @param int $product_id The ID of the product.
 	 * @return float The total initial amount charged when the subscription product in the order was first purchased, if any.
@@ -1663,10 +1690,13 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the recurring amount for an item
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the item on the subscription object instead.
+	 *
 	 * @param WC_Order $order A WC_Order object
 	 * @param int $product_id The product/post ID of a subscription
+	 *
 	 * @return float The total amount to be charged for each billing period, if any, not including failed payments.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_item_recurring_amount( $order, $product_id ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the item on the subscription object rather than the value on the original order. A line item can be deleted from a subscription since Subscriptions v2.0, so even if it exists on an order, it may not exist as a subscription. That means for accurate results, you must use the value on the subscription object' );
@@ -1685,9 +1715,11 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the proportion of cart discount that is recurring for the product specified with $product_id
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_discount_cart( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different discounts, so use the subscription object' );
@@ -1716,9 +1748,12 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the proportion of cart discount tax that is recurring for the product specified with $product_id
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 *
 	 */
 	public static function get_recurring_discount_cart_tax( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different discounts, so use the subscription object' );
@@ -1747,17 +1782,19 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the proportion of total discount that is recurring for the product specified with $product_id
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_discount_total( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different discounts, so use the subscription object' );
 
 		$ex_tax = ( 'excl' === get_option( 'woocommerce_tax_display_cart' ) && wcs_get_objects_property( $order, 'display_totals_ex_tax' ) );
 
-		$recurring_discount_cart     = (double) self::get_recurring_discount_cart( $order );
-		$recurring_discount_cart_tax = (double) self::get_recurring_discount_cart_tax( $order );
+		$recurring_discount_cart     = (float) self::get_recurring_discount_cart( $order );
+		$recurring_discount_cart_tax = (float) self::get_recurring_discount_cart_tax( $order );
 		$recurring_discount_total    = 0;
 
 		$order_version = wcs_get_objects_property( $order, 'version' );
@@ -1794,9 +1831,11 @@ class WC_Subscriptions_Order {
 	 * to recurring payments, and only 1 subscription can be purchased at a time,
 	 * this is equal to @see WC_Order::get_total_tax()
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_shipping_tax_total( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different amounts, so use the subscription object' );
@@ -1827,9 +1866,11 @@ class WC_Subscriptions_Order {
 	 * payments, and only 1 subscription can be purchased at a time, this is
 	 * equal to @see WC_Order::get_total_shipping()
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_shipping_total( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different amounts, so use the subscription object' );
@@ -1858,6 +1899,8 @@ class WC_Subscriptions_Order {
 	/**
 	 * Return an array of shipping costs within this order.
 	 *
+	 * @deprecated 2.0 Use the shipping for each individual subscription object instead.
+	 *
 	 * @return array
 	 */
 	public static function get_recurring_shipping_methods( $order ) {
@@ -1874,6 +1917,8 @@ class WC_Subscriptions_Order {
 
 	/**
 	 * Returns an array of taxes on an order with their recurring totals.
+	 *
+	 * @deprecated 2.0 Use the taxes for the subscription object instead.
 	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
@@ -1892,10 +1937,11 @@ class WC_Subscriptions_Order {
 
 	/**
 	 * Returns the proportion of total tax on an order that is recurring for the product specified with $product_id
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
 	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_total_tax( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different amounts, so use the subscription object' );
@@ -1924,9 +1970,11 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the proportion of total before tax on an order that is recurring for the product specified with $product_id
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the value for the subscription object instead.
+	 *
 	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @param int $product_id The ID of the product.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
 	 */
 	public static function get_recurring_total_ex_tax( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the value for the subscription object rather than the value on the original order. The value is stored against the subscription since Subscriptions v2.0 as an order can be used to create multiple different subscriptions with different amounts, so use the subscription object' );
@@ -1965,10 +2013,13 @@ class WC_Subscriptions_Order {
 	/**
 	 * Creates a string representation of the subscription period/term for each item in the cart
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.0
+	 * @deprecated 2.0 Use WC_Subscription::get_formatted_order_total() instead.
+	 *
 	 * @param WC_Order $order A WC_Order object.
 	 * @param mixed $deprecated_price Never used.
 	 * @param mixed $deprecated_sign_up_fee Never used.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.0
+	 *
 	 */
 	public static function get_order_subscription_string( $order, $deprecated_price = '', $deprecated_sign_up_fee = '' ) {
 		_deprecated_function( __METHOD__, '2.0', 'WC_Subscription::get_formatted_order_total()' );
@@ -1983,8 +2034,10 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns an array of items in an order which are recurring along with their recurring totals.
 	 *
-	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.2
+	 * @deprecated 2.0 Use the items on each individual subscription object instead.
+	 *
+	 * @param WC_Order|int $order A WC_Order object or ID of a WC_Order order.
 	 */
 	public static function get_recurring_items( $order ) {
 		_deprecated_function( __METHOD__, '2.0', 'the items on each individual subscription object (i.e. "shop_subscription")' );
@@ -2025,10 +2078,13 @@ class WC_Subscriptions_Order {
 	/**
 	 * Returns the period (e.g. month) for a each subscription product in an order.
 	 *
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v1.0
+	 * @deprecated 2.0 Use the billing period for each individual subscription object instead.
+	 *
 	 * @param mixed $order A WC_Order object or the ID of the order which the subscription was purchased in.
 	 * @param int $product_id (optional) The post ID of the subscription WC_Product object purchased in the order. Defaults to the ID of the first product purchased in the order.
+	 *
 	 * @return string A string representation of the period for the subscription, i.e. day, week, month or year.
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.0
 	 */
 	public static function get_subscription_period( $order, $product_id = 0 ) {
 		_deprecated_function( __METHOD__, '2.0', 'the billing period for each individual subscription object. Since Subscriptions v2.0, an order can be used to create multiple different subscriptions with different billing schedules, so use the subscription object' );

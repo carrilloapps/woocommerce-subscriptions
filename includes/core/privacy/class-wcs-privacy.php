@@ -30,9 +30,18 @@ class WCS_Privacy extends WC_Abstract_Privacy {
 	protected static $doing_user_inactivity_query = false;
 
 	/**
+	 * Health Check privacy eraser.
+	 *
+	 * @var \Automattic\WooCommerce_Subscriptions\Internal\HealthCheck\PrivacyEraser
+	 */
+	protected $health_check_privacy_eraser;
+
+	/**
 	 * WCS_Privacy constructor.
 	 */
 	public function __construct() {
+		$this->health_check_privacy_eraser = new \Automattic\WooCommerce_Subscriptions\Internal\HealthCheck\PrivacyEraser();
+
 		if ( ! self::$background_process ) {
 			self::$background_process = new WCS_Privacy_Background_Updater();
 		}
@@ -50,6 +59,9 @@ class WCS_Privacy extends WC_Abstract_Privacy {
 
 		// Add our exporters and erasers.
 		$this->add_exporter( 'woocommerce-subscriptions-data', __( 'Subscriptions Data', 'woocommerce-subscriptions' ), array( 'WCS_Privacy_Exporters', 'subscription_data_exporter' ) );
+
+		// Prune Health Check candidate data when the customer's source subscription data is erased.
+		$this->add_eraser( 'woocommerce-subscriptions-health-check-data', __( 'Subscriptions Health Check Data', 'woocommerce-subscriptions' ), array( $this->health_check_privacy_eraser, 'erase_by_email' ) );
 		$this->add_eraser( 'woocommerce-subscriptions-data', __( 'Subscriptions Data', 'woocommerce-subscriptions' ), array( 'WCS_Privacy_Erasers', 'subscription_data_eraser' ) );
 	}
 
@@ -63,6 +75,7 @@ class WCS_Privacy extends WC_Abstract_Privacy {
 		add_filter( 'woocommerce_subscription_bulk_actions', array( __CLASS__, 'add_privacy_bulk_action' ) );
 		add_action( 'load-edit.php', array( __CLASS__, 'process_bulk_action' ) );
 		add_action( 'woocommerce_remove_subscription_personal_data', array( 'WCS_Privacy_Erasers', 'remove_subscription_personal_data' ) );
+		add_action( 'woocommerce_privacy_before_remove_subscription_personal_data', array( $this->health_check_privacy_eraser, 'erase_for_subscription' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'bulk_admin_notices' ) );
 
 		add_filter( 'woocommerce_account_settings', array( __CLASS__, 'add_caveat_to_order_data_retention_settings' ) );

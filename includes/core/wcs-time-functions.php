@@ -153,12 +153,22 @@ function wcs_get_subscription_ranges( $subscription_period = null ) {
  *
  * @param int|null $interval (optional) An interval in the range 1-6
  * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.0
+ * @version x.x.x
  */
 function wcs_get_subscription_period_interval_strings( $interval = null ) {
 
 	$intervals = array( 1 => _x( 'every', 'period interval (eg "$10 _every_ 2 weeks")', 'woocommerce-subscriptions' ) );
 
-	foreach ( range( 2, 6 ) as $i ) {
+	$range = range( 2, 6 );
+
+	// Extend the default range to include custom numeric intervals (e.g. 22) so their ordinal labels are generated correctly.
+	// Guard against 1 — it is seeded above as 'every' (no ordinal) and must not be overwritten with 'every 1st'.
+	if ( is_numeric( $interval ) && (int) $interval > 1 && ! in_array( (int) $interval, $range, true ) ) {
+		$range[] = (int) $interval;
+		sort( $range );
+	}
+
+	foreach ( $range as $i ) {
 		// translators: period interval, placeholder is ordinal (eg "$10 every _2nd/3rd/4th_", etc)
 		$intervals[ $i ] = sprintf( _x( 'every %s', 'period interval with ordinal number (e.g. "every 2nd"', 'woocommerce-subscriptions' ), wcs_append_numeral_suffix( $i ) );
 	}
@@ -167,9 +177,9 @@ function wcs_get_subscription_period_interval_strings( $interval = null ) {
 
 	if ( empty( $interval ) ) {
 		return $intervals;
-	} else {
-		return $intervals[ $interval ];
 	}
+
+	return isset( $intervals[ $interval ] ) ? $intervals[ $interval ] : '';
 }
 
 /**
@@ -634,7 +644,7 @@ function wcs_is_datetime_mysql_format( $time ) {
 
 	$format = wcs_get_db_datetime_format();
 
-	$date_object = DateTime::createFromFormat( $format, $time );
+	$date_object = DateTime::createFromFormat( $format, $time, new DateTimeZone( 'UTC' ) );
 
 	// DateTime::createFromFormat will return false if it is an invalid date.
 	return $date_object

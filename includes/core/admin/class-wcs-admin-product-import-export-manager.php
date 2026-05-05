@@ -20,6 +20,7 @@ class WCS_Admin_Product_Import_Export_Manager {
 		add_filter( 'woocommerce_exporter_product_types', array( __CLASS__, 'register_susbcription_variation_type' ) );
 		add_filter( 'woocommerce_product_export_product_query_args', array( __CLASS__, 'filter_export_query' ) );
 		add_filter( 'woocommerce_product_import_process_item_data', array( __CLASS__, 'import_subscription_variations' ) );
+		add_filter( 'woocommerce_product_import_pre_insert_product_object', array( __CLASS__, 'set_subscription_price_on_import' ) );
 	}
 
 	/**
@@ -103,5 +104,24 @@ class WCS_Admin_Product_Import_Export_Manager {
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Sets the subscription price meta when importing a subscription product.
+	 *
+	 * During CSV imports, WooCommerce sets the regular price (`_price`) from the "Regular price" column,
+	 * but subscription products also need _subscription_price to be set for proper and consistent pricing.
+	 *
+	 * @param WC_Product $product The product object being imported.
+	 *
+	 * @return WC_Product
+	 */
+	public static function set_subscription_price_on_import( $product ) {
+		if ( ! $product instanceof WC_Product || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+			return $product;
+		}
+
+		$product->update_meta_data( '_subscription_price', $product->get_regular_price() );
+		return $product;
 	}
 }

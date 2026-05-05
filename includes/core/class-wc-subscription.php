@@ -348,7 +348,10 @@ class WC_Subscription extends WC_Order {
 				break;
 			case 'completed': // core WC order status mapped internally to avoid exceptions
 			case 'active':
-				if ( ! $this->is_payment_completed_flow && $this->contains_unavailable_product() ) {
+				// Allow admins to always update in the admin area
+				if ( ! $this->is_payment_completed_flow
+					&& $this->contains_unavailable_product()
+					&& ! ( is_admin() && current_user_can( 'manage_woocommerce' ) ) ) {
 					$can_be_updated = false;
 				} elseif ( $this->payment_method_supports( 'subscription_reactivation' ) && $this->has_status( 'on-hold' ) ) {
 					// If the subscription's end date is in the past, it cannot be reactivated.

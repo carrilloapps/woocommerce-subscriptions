@@ -130,6 +130,8 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Return the sign-up fee for this product
 	 *
+	 * @deprecated 2.2.0 Use WC_Subscriptions_Product::get_sign_up_fee().
+	 *
 	 * @return string
 	 */
 	public function get_sign_up_fee() {
@@ -140,6 +142,7 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Returns the sign up fee (including tax) by filtering the products price used in
 	 * @see WC_Product::get_price_including_tax( $qty )
+	 * @deprecated 2.3.0
 	 *
 	 * @return string
 	 */
@@ -157,6 +160,7 @@ class WC_Product_Subscription extends WC_Product_Simple {
 	/**
 	 * Returns the sign up fee (excluding tax) by filtering the products price used in
 	 * @see WC_Product::get_price_excluding_tax( $qty )
+	 * @deprecated 2.2.0
 	 *
 	 * @return string
 	 */

@@ -204,6 +204,7 @@ function wcs_get_users_subscriptions( $user_id = 0 ) {
  * Get subscription IDs for the given user.
  *
  * @author Jeremy Pry
+ * @deprecated 2.3.0 Use WCS_Customer_Store::instance()->get_users_subscription_ids()
  *
  * @param int $user_id The ID of the user whose subscriptions you want.
  *
@@ -218,6 +219,7 @@ function wcs_get_users_subscription_ids( $user_id ) {
  * Get subscription IDs for a user using caching.
  *
  * @author Jeremy Pry
+ * @deprecated 2.3.0 Use WCS_Customer_Store::instance()->get_users_subscription_ids()
  *
  * @param int $user_id The ID of the user whose subscriptions you want.
  *

@@ -381,17 +381,14 @@ jQuery( function ( $ ) {
 		},
 		moveSubscriptionVariationFields: function () {
 			$( '#variable_product_options .variable_subscription_pricing' )
-				.not( 'wcs_moved' )
+				.not( '.wcs_moved' )
 				.each( function () {
-					var $regularPriceRow = $( this ).siblings(
-							'.variable_pricing'
-						),
-						$trialSignUpRow = $( this ).siblings(
-							'.variable_subscription_trial_sign_up'
-						),
-						$saleDatesRow;
-
-					$saleDatesRow = $( this ).siblings( '.variable_pricing' );
+					// Use .first() to target only the original pricing row, not additional
+					// .variable_pricing divs added by other features (e.g., COGS).
+					// Without .first(), jQuery's insertBefore() clones elements when
+					// multiple targets exist, causing duplicate fields.
+					var $regularPriceRow = $( this ).siblings( '.variable_pricing' ).first(),
+						$trialSignUpRow = $( this ).siblings( '.variable_subscription_trial_sign_up' );
 
 					// Add the subscription price fields above the standard price fields
 					$( this ).insertBefore( $regularPriceRow );
@@ -1143,6 +1140,32 @@ jQuery( function ( $ ) {
 		} );
 
 		toggleGiftingCheckbox( $giftingEnableCheckbox.is( ':checked' ) );
+	}
+
+	// Toggle "Show shared downloadable products" checkbox visibility based on the "Enable downloadable file sharing" checkbox.
+	var $downloadsEnableCheckbox = $(
+			document.getElementById(
+				'woocommerce_subscriptions_enable_downloadable_file_linking'
+			)
+		),
+		$downloadsAddLineItems = $(
+			'.wc-settings-row-downloads-add-line-items'
+		);
+
+	if ( $downloadsEnableCheckbox.length > 0 ) {
+		function toggleDownloadsLineItems( checked ) {
+			if ( checked ) {
+				$downloadsAddLineItems.show();
+			} else {
+				$downloadsAddLineItems.hide();
+			}
+		}
+
+		$downloadsEnableCheckbox.on( 'change', function () {
+			toggleDownloadsLineItems( this.checked );
+		} );
+
+		toggleDownloadsLineItems( $downloadsEnableCheckbox.is( ':checked' ) );
 	}
 
 	// Don't display the variation notice for variable subscription products

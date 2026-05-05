@@ -4,7 +4,7 @@
  *
  * @author  Prospress
  * @package WooCommerce_Subscriptions/Templates/Emails/Plain
- * @version 1.0.0 - Migrated from WooCommerce Subscriptions v2.1.0
+ * @version 8.4.0
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
@@ -18,13 +18,13 @@ if ( 'order' == $order_type ) {
 } else {
 	echo esc_html( sprintf( __( 'Subscription Number: %s', 'woocommerce-subscriptions' ), $order->get_order_number() ) ) . "\n";
 }
-echo "\n" . esc_html( WC_Subscriptions_Email::email_order_items_table( $order, $order_items_table_args ) );
+echo "\n" . esc_html( wp_strip_all_tags( WC_Subscriptions_Email::email_order_items_table( $order, $order_items_table_args ) ) );
 
 echo "----------\n\n";
 
 if ( $totals = $order->get_order_item_totals() ) {
 	foreach ( $totals as $total ) {
-		echo esc_html( $total['label'] ) . "\t " . esc_html( $total['value'] ) . "\n";
+		echo esc_html( wp_strip_all_tags( $total['label'] . "\t " . $total['value'] ) ) . "\n";
 	}
 }
 

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c
+class ComposerStaticInitbaea8e4a5fa0623a37c231054de0bbe5
 {
     public static $prefixLengthsPsr4 = array (
         'C' =>
@@ -30,6 +30,21 @@ class ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c
 
     public static $classMap = array (
         'Automattic\\Jetpack\\Constants' => __DIR__ . '/..' . '/automattic/jetpack-constants/src/class-constants.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\Admin\\CandidatesListTable' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/Admin/CandidatesListTable.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\Bootstrap' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/Bootstrap.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\CandidateStore' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/CandidateStore.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\CircuitBreaker' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/CircuitBreaker.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\Detector' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/Detector.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\HealthCheckDbException' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/HealthCheckDbException.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\HealthCheckScanInFlightException' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/HealthCheckScanInFlightException.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\PrivacyEraser' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/PrivacyEraser.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\RunStore' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/RunStore.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\ScheduleManager' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/ScheduleManager.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\StatusTab' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/StatusTab.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\HealthCheck\\Tracks' => __DIR__ . '/../..' . '/src/Internal/HealthCheck/Tracks.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Pricing\\Price_Calculator' => __DIR__ . '/../..' . '/src/Internal/Pricing/Price_Calculator.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Pricing\\Price_Context' => __DIR__ . '/../..' . '/src/Internal/Pricing/Price_Context.php',
+        'Automattic\\WooCommerce_Subscriptions\\Internal\\Pricing\\Price_String_Renderer' => __DIR__ . '/../..' . '/src/Internal/Pricing/Price_String_Renderer.php',
         'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Collector' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Collector.php',
         'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Events' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Events.php',
         'Automattic\\WooCommerce_Subscriptions\\Internal\\Telemetry\\Orders' => __DIR__ . '/../..' . '/src/Internal/Telemetry/Orders.php',
@@ -161,6 +176,7 @@ class ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c
         'WCSG_Recipient_Management' => __DIR__ . '/../..' . '/includes/gifting/class-wcsg-recipient-management.php',
         'WCSG_Template_Loader' => __DIR__ . '/../..' . '/includes/gifting/class-wcsg-template-loader.php',
         'WCS_Gifting' => __DIR__ . '/../..' . '/includes/gifting/class-wcs-gifting.php',
+        'WCS_Health_Check_Table_Maker' => __DIR__ . '/../..' . '/includes/health-check/class-wcs-health-check-table-maker.php',
         'WC_Subscription_Downloads' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads.php',
         'WC_Subscription_Downloads_Admin_Welcome_Announcement' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-admin-welcome-announcement.php',
         'WC_Subscription_Downloads_Ajax' => __DIR__ . '/../..' . '/includes/downloads/class-wc-subscription-downloads-ajax.php',
@@ -173,9 +189,9 @@ class ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInitcb45de1ca955f89ec737c442c7cf101c::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitbaea8e4a5fa0623a37c231054de0bbe5::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitbaea8e4a5fa0623a37c231054de0bbe5::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitbaea8e4a5fa0623a37c231054de0bbe5::$classMap;
 
         }, null, ClassLoader::class);
     }

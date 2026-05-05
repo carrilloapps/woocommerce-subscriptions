@@ -35,6 +35,38 @@ function wcs_create_renewal_order( $subscription ) {
 
 	WCS_Related_Order_Store::instance()->add_relation( $renewal_order, $subscription, 'renewal' );
 
+	// Re-read suspect-stale state from the data store: in-memory total reads
+	// 0 yet the line items sum to a non-zero amount. Matches the failure mode
+	// from https://github.com/Automattic/woocommerce-subscriptions-core/issues/707
+	// where an object-cache hiccup left the in-memory snapshot stripped of
+	// its total even though the persisted row was correct, causing
+	// `WC_Subscriptions_Manager::process_renewal()` to call
+	// `payment_complete()` on an unpaid renewal. Skips legitimate $0 renewals
+	// where line items are free (e.g. free trial). For full-discount coupons
+	// the guard fires but is harmless: the re-read confirms the genuine $0
+	// total and `payment_complete()` proceeds normally. Runs before the
+	// `wcs_renewal_order_created` filter so any modifications made by
+	// downstream callbacks survive. Note: `read()` resets in-memory state via
+	// `set_defaults()` before reloading; safe here because the order is freshly
+	// persisted by `add_relation()` above with no pending in-memory changes.
+	if ( 0.0 === (float) $renewal_order->get_total()
+		&& 0.0 < (float) $renewal_order->get_subtotal()
+	) {
+		$renewal_order_id = $renewal_order->get_id();
+		try {
+			$renewal_order->get_data_store()->read( $renewal_order );
+			wc_get_logger()->info(
+				sprintf( 'Stale-cache guard refreshed renewal order #%d (in-memory total was 0 but subtotal was non-zero).', $renewal_order_id ),
+				array( 'source' => 'wcs-renewal-functions' )
+			);
+		} catch ( Exception $e ) {
+			wc_get_logger()->error(
+				sprintf( 'Stale-cache guard failed to re-read renewal order #%d: %s', $renewal_order_id, $e->getMessage() ),
+				array( 'source' => 'wcs-renewal-functions' )
+			);
+		}
+	}
+
 	/**
 	 * Provides an opportunity to monitor, interact with and replace renewal orders when they
 	 * are first created.
@@ -210,4 +242,38 @@ function wcs_is_manual_renewal_required() {
  */
 function wcs_is_manual_renewal_enabled() {
 	return class_exists( 'WCS_Manual_Renewal_Manager' ) ? WCS_Manual_Renewal_Manager::is_manual_renewal_enabled() : false;
+}
+
+/**
+ * Determine whether a subscription should require manual renewal after a payment method or gateway change.
+ *
+ * - If the store forces manual renewals, always manual.
+ * - If the new gateway is missing or cannot process automatic subscriptions, manual (the gateway cannot
+ *   satisfy an automatic preference).
+ * - If the merchant allows subscribers to toggle their renewal preference (the store-level
+ *   "Display the auto renewal toggle" setting is on), preserve the subscription's existing preference.
+ * - Otherwise, automatic (the gateway supports it and the merchant doesn't let subscribers choose).
+ *
+ * @since 8.6.1
+ *
+ * @param WC_Subscription              $subscription The subscription whose renewal preference is being evaluated.
+ * @param WC_Payment_Gateway|null|bool $new_gateway  The gateway being set on the subscription, or null/false if none.
+ * @return bool Whether the subscription should require manual renewal.
+ */
+function wcs_should_require_manual_renewal( $subscription, $new_gateway ) {
+
+	if ( wcs_is_manual_renewal_required() ) {
+		return true;
+	}
+
+	if ( empty( $new_gateway ) || ! is_a( $new_gateway, 'WC_Payment_Gateway' ) || ! $new_gateway->supports( 'subscriptions' ) ) {
+		return true;
+	}
+
+	// If the toggle is enabled, a manual subscription will be kept in manual mode on an upgrade to a payment method that does, even if it wasn't an actual decision from the shopper (e.g., original payment method not supporting automatic renewals).
+	if ( class_exists( 'WCS_My_Account_Auto_Renew_Toggle' ) && WCS_My_Account_Auto_Renew_Toggle::is_enabled() ) {
+		return (bool) $subscription->get_requires_manual_renewal();
+	}
+
+	return false;
 }

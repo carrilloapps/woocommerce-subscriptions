@@ -843,15 +843,17 @@ class WC_Subscriptions_Switcher {
 	 * To prorate sign-up fee and recurring amounts correctly when the customer switches a subscription multiple times, keep a record of the
 	 * amount for each on the order item.
 	 *
+	 * @since      2.0
+	 * @deprecated 2.2.0 Use WC_Subscriptions_Switcher::add_line_item_meta() instead.
+	 *
 	 * @param int $order_item_id The ID of a WC_Order_Item object.
 	 * @param array $cart_item The cart item's data.
 	 * @param string $cart_item_key The hash used to identify the item in the cart
-	 * @since 2.0
 	 */
 	public static function add_order_item_meta( $order_item_id, $cart_item, $cart_item_key ) {
 
 		if ( false === wcs_is_woocommerce_pre( '3.0' ) ) {
-			_deprecated_function( __METHOD__, '2.2.0 and WooCommerce 3.0.0', __CLASS__ . '::add_order_line_item_meta( $order_item, $cart_item_key, $cart_item )' );
+			_deprecated_function( __METHOD__, '2.2.0 and WooCommerce 3.0.0', __CLASS__ . '::add_line_item_meta( $order_item, $cart_item_key, $cart_item, $order )' );
 		}
 
 		if ( isset( $cart_item['subscription_switch'] ) ) {
@@ -917,15 +919,17 @@ class WC_Subscriptions_Switcher {
 	 * Subscription items on a new billing schedule are left to be added as new subscriptions, but we also
 	 * want to keep a record of them being a switch, so we do that here.
 	 *
+	 * @since      2.0
+	 * @deprecated 2.2.0 Use WC_Subscriptions_Switcher::add_line_item_meta() instead.
+	 *
 	 * @param int $item_id The ID of a WC_Order_Item object.
 	 * @param array $cart_item The cart item's data.
 	 * @param string $cart_item_key The hash used to identify the item in the cart
-	 * @since 2.0
 	 */
 	public static function set_subscription_item_meta( $item_id, $cart_item, $cart_item_key ) {
 
 		if ( ! wcs_is_woocommerce_pre( '3.0' ) ) {
-			_deprecated_function( __METHOD__, '2.2.0', __CLASS__ . '::add_subscription_line_item_meta( $order_item, $cart_item_key, $cart_item )' );
+			_deprecated_function( __METHOD__, '2.2.0', __CLASS__ . '::add_line_item_meta( $order_item, $cart_item_key, $cart_item, $order )' );
 		}
 
 		if ( isset( $cart_item['subscription_switch'] ) ) {
@@ -1142,6 +1146,21 @@ class WC_Subscriptions_Switcher {
 							unset( WC()->cart->recurring_carts[ $recurring_cart_key ] );
 						} else {
 							unset( WC()->cart->recurring_carts[ $recurring_cart_key ]->cart_contents[ $cart_item_key ] );
+
+							// Recalculate the recurring cart totals from the remaining items.
+							// We cannot call calculate_totals() here because it triggers the
+							// woocommerce_calculated_total filter chain, which rebuilds
+							// recurring carts and runs remove_handled_switch_recurring_carts(),
+							// destroying carts that WC_Subscriptions_Checkout still needs.
+							// Note: this simplified recalculation does not update discount_total,
+							// discount_tax, or per-rate cart_contents_taxes. Those properties are
+							// set separately by create_subscription() and are unlikely to be
+							// affected in typical switch scenarios (coupons on switch carts are rare).
+							$remaining_cart            = WC()->cart->recurring_carts[ $recurring_cart_key ];
+							$contents_total            = array_sum( wp_list_pluck( $remaining_cart->cart_contents, 'line_total' ) );
+							$contents_tax              = array_sum( wp_list_pluck( $remaining_cart->cart_contents, 'line_tax' ) );
+							$remaining_cart->total     = $contents_total + $contents_tax + $remaining_cart->shipping_total + $remaining_cart->shipping_tax_total;
+							$remaining_cart->tax_total = $contents_tax;
 						}
 					}
 
@@ -2171,6 +2190,22 @@ class WC_Subscriptions_Switcher {
 			if ( $refreshed_subscription ) {
 				$refreshed_subscription->calculate_totals();
 			}
+
+			// If all switched items moved to a new subscription and no active
+			// line items remain, cancel the now-empty subscription.
+			$has_added_items = false;
+			if ( ! empty( $switch_data['switches'] ) ) {
+				foreach ( $switch_data['switches'] as $switch_item_data ) {
+					if ( isset( $switch_item_data['add_line_item'] ) ) {
+						$has_added_items = true;
+						break;
+					}
+				}
+			}
+
+			if ( ! $has_added_items && $refreshed_subscription && $refreshed_subscription->has_status( 'active' ) && 0 === count( $refreshed_subscription->get_items() ) ) {
+				$refreshed_subscription->update_status( 'cancelled', __( 'All items were switched to a new subscription.', 'woocommerce-subscriptions' ) );
+			}
 		}
 	}
 
@@ -2261,12 +2296,16 @@ class WC_Subscriptions_Switcher {
 	}
 
 	/**
-	 * Once payment is processed on a switch from a $0 / period subscription to a non-zero $ / period subscription, if
-	 * payment was completed with a payment method which supports automatic payments, update the payment on the subscription
-	 * and the manual renewals flag so that future renewals are processed automatically.
+	 * Reconcile a manual subscription's renewal preference after a product switch is paid.
 	 *
-	 * @param WC_Order $order
+	 * Applies the unified rule in {@see wcs_should_require_manual_renewal()} so the subscriber's existing
+	 * preference is preserved when the merchant's "Display the auto renewal toggle" setting is on, and
+	 * otherwise flips the subscription to automatic when the gateway can handle it.
+	 *
+	 * @param WC_Order $order The switch order.
 	 * @since 2.1
+	 * @since 8.6.1 Defers the manual/automatic decision to wcs_should_require_manual_renewal() so the switcher
+	 *              and change-payment-method flows apply the same rule.
 	 */
 	public static function maybe_set_payment_method_after_switch( $order ) {
 
@@ -2281,20 +2320,26 @@ class WC_Subscriptions_Switcher {
 				continue;
 			}
 
-			if ( $subscription->get_payment_method() !== wcs_get_objects_property( $order, 'payment_method' ) ) {
+			// @phpstan-ignore property.notFound
+			$available_gateways   = WC()->payment_gateways->get_available_payment_gateways();
+			$order_payment_method = wcs_get_objects_property( $order, 'payment_method' );
+			$payment_method       = '' != $order_payment_method && isset( $available_gateways[ $order_payment_method ] ) ? $available_gateways[ $order_payment_method ] : false;
 
-				// Set the new payment method on the subscription
-				// @phpstan-ignore property.notFound
-				$available_gateways   = WC()->payment_gateways->get_available_payment_gateways();
-				$order_payment_method = wcs_get_objects_property( $order, 'payment_method' );
-				$payment_method       = '' != $order_payment_method && isset( $available_gateways[ $order_payment_method ] ) ? $available_gateways[ $order_payment_method ] : false;
-
-				if ( $payment_method && $payment_method->supports( 'subscriptions' ) ) {
-					$subscription->set_payment_method( $payment_method );
-					$subscription->set_requires_manual_renewal( false );
-					$subscription->save();
-				}
+			if ( ! $payment_method || ! $payment_method->supports( 'subscriptions' ) ) {
+				continue;
 			}
+
+			// Compute the desired renewal mode before calling set_payment_method() below, since that setter
+			// may flip the manual-renewal flag as a side effect and we want the unified rule to see the
+			// subscriber's pre-change preference.
+			$new_requires_manual_renewal = wcs_should_require_manual_renewal( $subscription, $payment_method );
+
+			if ( $subscription->get_payment_method() !== $order_payment_method ) {
+				$subscription->set_payment_method( $payment_method );
+			}
+
+			$subscription->set_requires_manual_renewal( $new_requires_manual_renewal );
+			$subscription->save();
 		}
 	}
 
@@ -2457,10 +2502,6 @@ class WC_Subscriptions_Switcher {
 			// If items are actively being added to this subscription, then it is not the last remaining item.
 			if ( isset( $switch['add_line_item'] ) ) {
 				return false;
-			}
-
-			if ( isset( $switch['remove_line_item'] ) ) {
-				unset( $remaining_items[ $switch['remove_line_item'] ] );
 			}
 		}
 

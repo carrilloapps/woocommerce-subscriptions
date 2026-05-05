@@ -548,8 +548,10 @@ class WCS_Cart_Early_Renewal extends WCS_Cart_Renewal {
 	 * Reactivates an on hold subscription when an early renewal order
 	 * is cancelled by the user.
 	 *
+	 * @since      2.3.0
+	 * @deprecated 5.2.0
+	 *
 	 * @param int $order_id The WC Order ID which contains an early renewal.
-	 * @since 2.3.0
 	 */
 	public function maybe_reactivate_subscription( $order_id ) {
 		wcs_deprecated_function( __METHOD__, '5.2.0' );
@@ -579,9 +581,11 @@ class WCS_Cart_Early_Renewal extends WCS_Cart_Renewal {
 	/**
 	 * Records an early renewal against order created on checkout (only for WooCommerce < 3.0).
 	 *
+	 * @since      2.3.0
+	 * @deprecated 5.2.0 Use WCS_Cart_Early_Renewal::add_early_renewal_metadata_to_order() instead.
+	 *
 	 * @param int $order_id The post_id of a shop_order post/WC_Order object.
 	 * @param array $posted_data The data posted on checkout.
-	 * @since 2.3.0
 	 */
 	public function maybe_record_early_renewal( $order_id, $posted_data ) {
 		wcs_deprecated_function( __METHOD__, '5.2.0', 'WCS_Cart_Early_Renewal::add_early_renewal_metadata_to_order( $order, $posted_data )' );
@@ -611,10 +615,13 @@ class WCS_Cart_Early_Renewal extends WCS_Cart_Renewal {
 	 * Renewal orders are usually not cancellable because @see WCS_Cart_Renewal::filter_my_account_my_orders_actions() prevents it.
 	 * In the case of early renewals, the customer has opted for early renewal and so should be able to cancel it.
 	 *
+	 * @since      2.3.0
+	 * @deprecated 5.6.0 Use WCS_Cart_Early_Renewal::filter_early_renewal_order_actions() instead.
+	 *
 	 * @param array $actions A list of actions customers can make on an order from their My Account page
 	 * @param WC_Order $order The order the list of actions relate to.
+	 *
 	 * @return array $actions
-	 * @since 2.3.0
 	 */
 	public static function add_cancel_order_action( $actions, $order ) {
 		wcs_deprecated_function( __METHOD__, '5.6.0', __CLASS__ . '::filter_early_renewal_order_actions()' );

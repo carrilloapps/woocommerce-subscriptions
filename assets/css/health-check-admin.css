@@ -1,0 +1,358 @@
+/**
+ * Subscriptions Health Check admin styles.
+ *
+ * Loaded only on the WC Status page via Bootstrap's admin_enqueue_scripts
+ * handler. Previously inline in StatusTab::render(); extracted so the
+ * browser caches the bytes, CSP headers can cover them, and other
+ * plugins can override without !important.
+ */
+
+/*
+ * The candidates table is sized to its content (table-layout: auto, so
+ * columns grow to fit their longest cell), and on stores with long
+ * product titles or customer names it can be wider than the admin
+ * content area. WC Admin's embed page CSS sets
+ *   .woocommerce-embed-page #wpcontent,
+ *   .woocommerce-embed-page #wpbody-content { overflow-x: initial !important }
+ * which removes the default horizontal containment on the admin chrome,
+ * letting that overflow bubble all the way up to the body and turn the
+ * whole page into a horizontal scroll. Restoring containment at the
+ * same elements (with `clip`, which clips the paint without forcing a
+ * vertical scrollbar) keeps the overflow inside our scroll wrapper.
+ *
+ * Scoped via `:has()` so the override only applies when this tab is
+ * being rendered — other WC Status tabs and other embed pages keep
+ * WC's intended `overflow-x: initial`. Specificity (0,2,1) plus
+ * `!important` is what's needed to outrank WC's own (0,1,1) +
+ * `!important`.
+ */
+.woocommerce-embed-page #wpcontent:has(.woocommerce-subscriptions-health-check-tab),
+.woocommerce-embed-page #wpbody-content:has(.woocommerce-subscriptions-health-check-tab) {
+	overflow-x: clip !important;
+}
+
+.woocommerce-subscriptions-health-check-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0 0 0.75em;
+	flex-wrap: wrap;
+}
+
+.woocommerce-subscriptions-health-check-header-title h2 {
+	margin: 0 0 4px;
+	padding: 0;
+}
+
+.woocommerce-subscriptions-health-check-header-title .description {
+	margin: 0;
+	max-width: 60em;
+}
+
+.woocommerce-subscriptions-health-check-header-actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.woocommerce-subscriptions-health-check-header-actions form {
+	margin: 0;
+}
+
+/*
+ * WP core's .spinner is float-left with a 20x20 box and top margin
+ * that assumes it sits beside a button, not inside one. Inside our
+ * Run-now button we want it inline, vertically centred, with no
+ * float or top margin so the button height stays consistent with
+ * the idle state and the GIF lines up with the "Run now" label.
+ */
+.woocommerce-subscriptions-health-check-run-now-form .spinner.is-active {
+	float: none;
+	display: inline-block;
+	vertical-align: middle;
+	margin: 0 0 0 6px;
+}
+
+/*
+ * Outranks WooCommerce core's `.woocommerce-embed-page .notice { padding: 1px 12px }`
+ * rule from `embed/style.css`, which ties on specificity (0,2,0) with a
+ * bare `.tab .summary` selector and loads AFTER our stylesheet in the
+ * cascade — which would otherwise flatten the card to WP's default
+ * notice padding. The compound `.notice.<summary>` chip bumps us to
+ * (0,3,0). The pre-extraction inline `<style>` block won by source
+ * order; moving to an external stylesheet in `<head>` gave up that
+ * tiebreaker, so we rely on specificity instead.
+ */
+.woocommerce-subscriptions-health-check-tab .notice.woocommerce-subscriptions-health-check-summary {
+	display: flex;
+	gap: 32px;
+	flex-wrap: wrap;
+	padding: 18px 24px;
+	margin: 0 0 0.5em;
+	border-left-color: #2271b1;
+}
+
+.woocommerce-subscriptions-health-check-summary-col {
+	flex: 1 1 220px;
+	min-width: 220px;
+}
+
+.woocommerce-subscriptions-health-check-summary-label {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #646970;
+	margin-bottom: 6px;
+}
+
+.woocommerce-subscriptions-health-check-card-primary {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+	line-height: 1.4;
+}
+
+/* Mixed-weight variant: only the inner <strong> stays bold (the number); the descriptor reads in regular weight for the visual hierarchy the design uses on the Scope card. */
+.woocommerce-subscriptions-health-check-card-primary-mixed {
+	font-weight: 400;
+}
+
+.woocommerce-subscriptions-health-check-card-secondary {
+	font-size: 13px;
+	color: #50575e;
+	line-height: 1.4;
+	margin-top: 2px;
+}
+
+.woocommerce-subscriptions-health-check-card-secondary a {
+	color: #50575e;
+}
+
+.woocommerce-subscriptions-health-check-card-secondary-warn {
+	color: #b26a00;
+}
+
+.woocommerce-subscriptions-health-check-customer-payment-sub,
+.woocommerce-subscriptions-health-check-last-payment-total {
+	color: #606a73;
+	font-size: 12px;
+}
+
+/* Token-on-file label is supporting info, not a status signal - same muted-gray as the wc_price totals. */
+.woocommerce-subscriptions-health-check-token {
+	color: #606a73;
+	font-size: 12px;
+}
+
+/* Wider search input so the full placeholder fits. */
+#woocommerce-subscriptions-health-check-search-input {
+	min-width: 320px;
+}
+
+/*
+ * Vertically centre row content to match the WC Orders list. WP's
+ * `wp-list-table` defaults to `vertical-align: top`, which pins the
+ * status/billing-mode/renewal-status pills to the top edge when the
+ * neighbouring column stacks two lines (subscription id over product
+ * title, etc.). WooCommerce core applies
+ * `vertical-align: middle` to every td/th in its Orders list for the
+ * same reason; mirroring that here keeps the two surfaces visually
+ * consistent.
+ */
+.wp-list-table.wcs-health-check-candidates td,
+.wp-list-table.wcs-health-check-candidates th {
+	vertical-align: middle;
+}
+
+/*
+ * Keep every header label on a single line. Two reasons it matters:
+ *  1. WP_List_Table renders each sortable header as
+ *       <a><span>Title</span><span class="sorting-indicators">…</span></a>
+ *     The two child spans are inline-level, so at column widths that
+ *     barely fit the title the sort indicator wraps to a new line.
+ *     The `th a` selector targets the anchor directly to outrank any
+ *     more-specific WP core admin rule that might re-enable wrapping.
+ *  2. Combined with the `table-layout: auto` override below, nowrap on
+ *     the headers gives each column a natural minimum width equal to
+ *     its header text — which is what makes the table push past the
+ *     scroll wrapper on narrow viewports so the wrapper actually scrolls.
+ */
+.wp-list-table.wcs-health-check-candidates thead th,
+.wp-list-table.wcs-health-check-candidates thead th a {
+	white-space: nowrap;
+}
+
+/*
+ * WP core floats every <span> child of a sortable header anchor:
+ *   th.sortable a span, th.sorted a span { float: left }
+ * (list-tables.css). Floats ignore `white-space: nowrap` — they wrap to
+ * a new line whenever the available width is too narrow to fit them
+ * side-by-side, and floated children don't contribute to a cell's
+ * min-content width under `table-layout: auto`, so the cell can be
+ * sized too narrow to fit the title and indicator side-by-side.
+ *
+ * Cancelling the float lets the spans flow as inline elements again so
+ * `white-space: nowrap` on the anchor (inherited from `thead th`) keeps
+ * the title and the indicator container on a single line, and the
+ * cell's min-content reflects the natural width of both. `vertical-
+ * align: middle` aligns the indicator with the title baseline since the
+ * title is text and the indicator container is an inline-level grid.
+ */
+.wp-list-table.wcs-health-check-candidates thead th.sortable a span,
+.wp-list-table.wcs-health-check-candidates thead th.sorted a span {
+	float: none;
+	vertical-align: middle;
+}
+
+.wp-list-table.wcs-health-check-candidates .sorting-indicators {
+	display: inline-grid;
+}
+
+/*
+ * Horizontal scroll wrapper for the candidates table — mirrors how
+ * WooCommerce's analytics tables behave on narrow viewports: only the
+ * data area scrolls, while the surrounding views/search/pagination chrome
+ * stays at full content width. The `<div>` wrapper is bracketed around
+ * the `<table>` by `CandidatesListTable::display_tablenav()`.
+ *
+ * `width: 100%` pins the wrapper to its containing form's content area
+ * so it cannot shrink-wrap to the table — without it, certain admin
+ * layouts (notably anything that gives the form a flex/inline-block
+ * context) let the wrapper grow to the table's natural width and the
+ * scroll never engages.
+ */
+.wcs-health-check-candidates-scroll {
+	width: 100%;
+	overflow-x: auto;
+}
+
+/*
+ * Counter `.widefat.fixed`'s `table-layout: fixed` + `width: 100%`,
+ * which forces every column into an equal slice of the wrapper width
+ * regardless of content — so the table never overflows and the scroll
+ * wrapper above never scrolls. Switching to `auto` layout with `width:
+ * auto` lets each column size to its content (with nowrap-ed headers
+ * acting as the per-column floor). `min-width: 100%` keeps the table
+ * spanning the full available width on wide viewports where columns
+ * would otherwise leave empty space to the right.
+ */
+.wcs-health-check-candidates-scroll .wp-list-table.wcs-health-check-candidates {
+	table-layout: auto;
+	width: auto;
+	min-width: 100%;
+}
+
+/*
+ * Warning-triangle tooltip used in the Billing mode cell (manual + has-token
+ * rows in the Supports-auto-renewal view) and the Next-payment cell on
+ * past-due rows. The wrapper is `tabindex="0"` so it can take focus from a
+ * keyboard, and the ::after bubble surfaces the same copy that mouse users
+ * see via the native `title` attribute. Screen readers read the tooltip
+ * text via `aria-label` on the wrapper.
+ */
+.woocommerce-subscriptions-health-check-warning {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	color: #dba617;
+	cursor: help;
+	vertical-align: middle;
+	position: relative;
+}
+
+.woocommerce-subscriptions-health-check-warning:focus {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.woocommerce-subscriptions-health-check-warning-icon {
+	display: block;
+	width: 14px;
+	height: 14px;
+}
+
+/*
+ * Floating tooltip element appended to <body> by the Health Check
+ * admin script — kept outside the candidates table wrapper so the
+ * wrapper's `overflow-x: auto` (which forces a non-`visible`
+ * `overflow-y` per the CSS spec) can't clip the bubble on first-row
+ * or last-row icons. Position is set inline via JS and recomputed on
+ * each show; this rule only handles appearance + show/hide. Screen
+ * readers continue to get the tooltip copy via `aria-label` on the
+ * icon span — no native `title` is rendered, so no double-bubble.
+ */
+.woocommerce-subscriptions-health-check-tooltip {
+	position: absolute;
+	display: none;
+	background: #1e1e1e;
+	color: #fff;
+	padding: 6px 10px;
+	border-radius: 3px;
+	font-size: 12px;
+	line-height: 1.4;
+	font-weight: normal;
+	white-space: normal;
+	max-width: 240px;
+	pointer-events: none;
+	z-index: 100000;
+}
+
+.woocommerce-subscriptions-health-check-tooltip.is-visible {
+	display: block;
+}
+
+/*
+ * Arrow pointing at the warning icon. CSS-triangle technique via
+ * transparent borders. The arrow's horizontal position is fed by a
+ * `--arrow-left` custom property set inline by the script — that lets
+ * the arrow stay aligned with the icon even when the bubble is edge-
+ * clamped against the viewport (so it isn't always centred on the
+ * tooltip itself).
+ */
+.woocommerce-subscriptions-health-check-tooltip::after {
+	content: '';
+	position: absolute;
+	top: 100%;
+	left: var(--arrow-left, 50%);
+	transform: translateX(-50%);
+	border: 6px solid transparent;
+	border-top-color: #1e1e1e;
+}
+
+/*
+ * Flipped-below variant: when the script can't fit the tooltip above
+ * the icon (near the top of the viewport) it places the bubble below
+ * and adds `is-below`. The arrow swaps to the top edge and flips its
+ * filled border so it points up at the icon.
+ */
+.woocommerce-subscriptions-health-check-tooltip.is-below::after {
+	top: auto;
+	bottom: 100%;
+	border-top-color: transparent;
+	border-bottom-color: #1e1e1e;
+}
+
+/*
+ * Past-due next-payment cell: warning icon as the first column, date and
+ * diff text stacked in the second column so they share a left edge. The
+ * cell stays single-row by collapsing the icon's vertical alignment to the
+ * top of the text stack — without that, an icon centred against the two-
+ * line stack would push the row height up.
+ */
+.woocommerce-subscriptions-health-check-next-payment-past {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 4px;
+}
+
+.woocommerce-subscriptions-health-check-next-payment-text {
+	display: flex;
+	flex-direction: column;
+}

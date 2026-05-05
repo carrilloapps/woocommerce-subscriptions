@@ -153,9 +153,13 @@ class WCS_Limiter {
 			// This actually means the product is limited when returning false.
 			if ( false === self::is_product_limited( $purchasable, $product ) ) {
 				$resubscribe_cart_item = wcs_cart_contains_resubscribe();
-				// Allows the product to be resubscribed but not purchased again.
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce validation is not required for this context.
-				if ( empty( $_GET['resubscribe'] ) && false === $resubscribe_cart_item && false === self::session_contains_resubscribe( $product ) ) {
+				$is_resubscribe = ! empty( $_GET['resubscribe'] ) || false !== $resubscribe_cart_item || false !== self::session_contains_resubscribe( $product );
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce validation is not required for this context.
+				$is_renewal = isset( $_GET['subscription_renewal'] ) || wcs_cart_contains_renewal() || self::session_contains_renewal( $product );
+
+				// Allows the product to be resubscribed but not purchased again.
+				if ( ! $is_resubscribe && ! $is_renewal ) {
 					$purchasable = false;
 				}
 			}
@@ -167,7 +171,9 @@ class WCS_Limiter {
 	/**
 	 * If a product is limited and the customer already has a subscription, mark it as not purchasable.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.1, Moved from WC_Subscriptions_Product
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v2.1, Moved from WC_Subscriptions_Product
+	 * @deprecated 8.0.0 Use WCS_Limiter::is_product_limited().
+	 *
 	 * @return bool
 	 */
 	public static function is_purchasable_product( $is_purchasable, $product ) {
@@ -268,7 +274,9 @@ class WCS_Limiter {
 	/**
 	 * Determines whether a product is purchasable based on whether the cart is to resubscribe or renew.
 	 *
-	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v2.1, Combines WCS_Cart_Renewal::is_purchasable and WCS_Cart_Resubscribe::is_purchasable
+	 * @since      1.0.0 - Migrated from WooCommerce Subscriptions v2.1, Combines WCS_Cart_Renewal::is_purchasable and WCS_Cart_Resubscribe::is_purchasable
+	 * @deprecated 1.0.0 Use WCS_Limiter::is_product_limited().
+	 *
 	 * @return bool
 	 */
 	public static function is_purchasable_renewal( $is_purchasable, $product ) {

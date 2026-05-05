@@ -189,8 +189,17 @@ class WCS_PayPal_Standard_IPN_Handler extends WC_Gateway_Paypal_IPN_Handler {
 
 			$transaction_order = wc_get_order( substr( $transaction_details['invoice'], strrpos( $transaction_details['invoice'], '-' ) + 1 ) );
 
-			// check if the failed signup has been previously recorded
-			if ( wcs_get_objects_property( $transaction_order, 'id' ) !== (int) $subscription->get_meta( '_paypal_failed_sign_up_recorded', true ) ) {
+			// Handle deleted orders gracefully - the referenced order may have been removed from the database.
+			// When this happens, treat it as a standard renewal so a new order is created at line 319.
+			if ( false === $transaction_order || ! is_object( $transaction_order ) ) {
+				WC_Gateway_Paypal::log(
+					sprintf(
+						'IPN renewal: referenced order from invoice %s not found (may have been deleted). Will create new renewal order.',
+						$transaction_details['invoice']
+					)
+				);
+			} elseif ( wcs_get_objects_property( $transaction_order, 'id' ) !== (int) $subscription->get_meta( '_paypal_failed_sign_up_recorded', true ) ) {
+				// Check if the failed signup has been previously recorded.
 				$is_renewal_sign_up_after_failure = true;
 			}
 		}

@@ -9,29 +9,21 @@
   order_trends: {
 
     by_order_type: {                  // object - monthly order data grouped by order type
-      store_gross: [                  // array - store's total GMV (all orders, not just subscription-related)
-        {
-          month: "2025-01",           // string - YYYY-MM format
-          gross: 1250.50,             // float - total value of all orders in this month
-        },
-        {
-          month: "2025-02",
-          gross: 1500.75,
-        },
+      store_gross: {                  // object keyed by month - store's total GMV (all orders, not just subscription-related)
+        "2025-01": 1250.50,           // float - total value of all orders in this month
+        "2025-02": 1500.75,
         // ... more months
-      ],
+      },
 
-      initial: [                      // array - parent orders (orders that created subscriptions)
-        {
-          month: "2025-01",           // string - YYYY-MM format
+      initial: {                      // object keyed by month - parent orders (orders that created subscriptions)
+        "2025-01": {
           count: 15,                  // int - count of initial orders in this month
           gross: 750.00,              // float - total value of initial orders in this month
           non_zero_count: 12,         // int - count of initial orders with non-zero total in this month
           quantity: 20,               // int - total quantity of items in initial orders in this month
           non_zero_quantity: 18,      // int - total quantity of items in non-zero initial orders in this month
         },
-        {
-          month: "2025-02",
+        "2025-02": {
           count: 18,
           gross: 900.00,
           non_zero_count: 15,
@@ -39,93 +31,78 @@
           non_zero_quantity: 22,
         },
         // ... more months
-      ],
+      },
 
-      renewal: [                      // array - renewal orders (recurring subscription payments)
-        {
-          month: "2025-01",
+      renewal: {                      // object keyed by month - renewal orders (recurring subscription payments)
+        "2025-01": {
           count: 10,
           gross: 500.00,
           non_zero_count: 8,
         },
-        {
-          month: "2025-02",
+        "2025-02": {
           count: 12,
           gross: 600.00,
           non_zero_count: 10,
         },
         // ... more months
-      ],
+      },
 
-      switch: [                       // array - switch orders (subscription product changes)
-        {
-          month: "2025-01",
+      switch: {                       // object keyed by month - switch orders (subscription product changes)
+        "2025-01": {
           count: 5,
           gross: 250.00,
           non_zero_count: 4,
         },
         // ... more months
-      ],
+      },
 
-      resubscribe: [                  // array - resubscribe orders (reactivated cancelled subscriptions)
-        {
-          month: "2025-01",
+      resubscribe: {                  // object keyed by month - resubscribe orders (reactivated cancelled subscriptions)
+        "2025-01": {
           count: 2,
           gross: 100.00,
           non_zero_count: 2,
         },
         // ... more months
-      ],
+      },
     },
 
-    by_payment_gateway: {   // object - monthly order data grouped by payment gateway
-      stripe: [                       // string key - payment gateway identifier (empty string for none)
-        {
-          month: "2024-01",           // string - YYYY-MM format
+    by_payment_gateway: {             // object keyed by payment gateway - monthly order data grouped by payment gateway
+      stripe: {                       // object keyed by month - data for this payment gateway
+        "2024-01": {
           count: 145,                 // int - count of orders for this gateway in this month
           gross: 12345.67,            // float - total value of orders for this gateway in this month
         },
-        {
-          month: "2024-02",
+        "2024-02": {
           count: 150,
           gross: 13500.00,
         },
         // ... more months for this gateway
-      ],
-      paypal: [
-        {
-          month: "2024-01",
+      },
+      paypal: {
+        "2024-01": {
           count: 30,
           gross: 2500.00,
         },
         // ... more months for this gateway
-      ],
-      "": [                           // empty string key represents orders with no payment method
-        {
-          month: "2024-01",
+      },
+      unknown_method: {               // "unknown_method" represents orders with no/empty payment method
+        "2024-01": {
           count: 5,
           gross: 0.00,
         },
-      ],
+      },
     },
   },
 
   // --- Subscription products data
   products: {
 
-    frequencies: [                 // array of objects - billing frequencies for published subscription products
-      {
-        period: "month",           // string - 'day'|'week'|'month'|'year'
-        interval: 1,               // int - billing interval (1, 2, 3, etc.)
-        count: 45                  // int - count of products with this frequency
-      },
-      {
-        period: "month",
-        interval: 3,
-        count: 12
-      },
+    frequencies: {                 // object keyed by "{period}_{interval}" - billing frequencies for published subscription products
+      month_1: 45,                 // int - count of products with this frequency (monthly)
+      month_3: 12,                 // int - count of products with this frequency (every 3 months)
+      year_1: 8,                   // int - count of products with this frequency (yearly)
       // ... more period/interval combinations
-    ],
+    },
 
     giftable: 23,                  // int - count of active products eligible for gifting
   },
@@ -138,37 +115,28 @@
     renewing_manually: 15,         // int - count of active subscriptions requiring manual renewal
     subscriber_count: 142,         // int - count of unique customers with at least one active subscription
 
-    payment_methods: [                      // array of objects - active subscriptions grouped by payment gateway
-      {
-        payment_method: "stripe",           // string - payment gateway identifier (empty string for none)
+    payment_methods: {                      // object keyed by payment gateway - active subscriptions grouped by payment gateway
+      stripe: {
         active_subscription_count: 127,     // int - count of active subscriptions
         inactive_subscription_count: 36,    // int - count of inactive subscriptions
         method_renews_off_site: "yes",      // string - 'yes'|'no'|'unknown'. Whether the payment gateway supports "gateway_scheduled_payments"
         manual_renewal_only: "no",          // string - 'yes'|'no'|'unknown'. Whether the payment gateway supports "subscriptions"
       },
-      {
-        payment_method: "",                 // empty string represents subscriptions with no payment method
+      unknown_method: {                     // "unknown_method" represents subscriptions with no/empty payment method
         active_subscription_count: 58,
         inactive_subscription_count: 14,
-        method_renews_off_site: "unknown",  // "unknown" used when the paymeny gateway associated with the subscription isn't found in WC_Payment_Gateways
+        method_renews_off_site: "unknown",  // "unknown" used when the payment gateway associated with the subscription isn't found in WC_Payment_Gateways
         manual_renewal_only: "unknown",
-      }
+      },
       // ... more payment gateways
-    ],
+    },
 
-    renewal_frequencies: [         // array of objects - billing frequencies for active subscriptions
-      {
-        period: "month",           // string - 'day'|'week'|'month'|'year'
-        interval: 1,               // int - billing interval (1, 2, 3, etc.)
-        count: 150                 // int - count of subscriptions with this frequency
-      },
-      {
-        period: "month",
-        interval: 3,
-        count: 35
-      },
+    renewal_frequencies: {         // object keyed by "{period}_{interval}" - billing frequencies for active subscriptions
+      month_1: 150,                // int - count of subscriptions with this frequency (monthly)
+      month_3: 35,                 // int - count of subscriptions with this frequency (every 3 months)
+      year_1: 20,                  // int - count of subscriptions with this frequency (yearly)
       // ... more period/interval combinations
-    ],
+    },
 
     // --- Legacy subscriptions data
                                   // Subscription dates

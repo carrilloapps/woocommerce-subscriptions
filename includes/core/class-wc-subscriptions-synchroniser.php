@@ -1356,6 +1356,7 @@ class WC_Subscriptions_Synchroniser {
 	 * are synced and the order total is zero.
 	 *
 	 * @since 1.0.0 - Migrated from WooCommerce Subscriptions v1.5.17
+	 * @deprecated 2.1.3 Use WC_Subscriptions_Order::maybe_autocomplete_order().
 	 */
 	public static function order_autocomplete( $new_order_status, $order_id ) {
 		_deprecated_function( __METHOD__, '2.1.3', 'WC_Subscriptions_Order::maybe_autocomplete_order' );

@@ -397,7 +397,7 @@ parameters:
 			path: includes/core/class-wc-subscriptions-order.php
 
 		-
-			message: "#^Cannot access property \\$order_custom_fields on bool\\|WC_Order\\|WC_Order_Refund\\.$#"
+			message: "#^Cannot access property \\$order_custom_fields on (bool\\|WC_Order\\|WC_Order_Refund|WC_Order\\|WC_Order_Refund\\|false)\\.$#"
 			count: 1
 			path: includes/core/class-wc-subscriptions-order.php
 
@@ -3632,7 +3632,7 @@ parameters:
 			path: templates/gifting/order-details-customer.php
 
 		-
-			message: "#^Cannot access property \\$order_date on bool\\|WC_Order\\|WC_Order_Refund\\.$#"
+			message: "#^Cannot access property \\$order_date on (bool\\|WC_Order\\|WC_Order_Refund|WC_Order\\|WC_Order_Refund\\|false)\\.$#"
 			count: 1
 			path: templates/gifting/related-orders.php
 

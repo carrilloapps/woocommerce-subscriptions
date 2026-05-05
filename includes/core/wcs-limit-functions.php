@@ -34,7 +34,10 @@ function wcs_get_product_limitation( $product ) {
 }
 
 /**
- * Returns true if product is limited to one active subscription and user currently has this product on-hold.
+ * Returns true if the product's subscription limit has been reached for the given user.
+ *
+ * When limited to one "active" subscription, subscriptions with on-hold or
+ * pending-cancel status also count because they still grant access.
  *
  * @param int|WC_Product $product A WC_Product object or the ID of a product
  * @return boolean
@@ -51,11 +54,13 @@ function wcs_is_product_limited_for_user( $product, $user_id = 0 ) {
 	$is_limited_for_user = false;
 	$product_limitation  = wcs_get_product_limitation( $product );
 
-	// If the subscription is limited to 1 active and the customer has a subscription to this product on-hold.
-	if ( 'active' == $product_limitation && wcs_user_has_subscription( $user_id, $product->get_id(), 'on-hold' ) ) {
-		$is_limited_for_user = true;
-	} elseif ( 'no' !== $product_limitation ) {
-		$is_limited_for_user = wcs_user_has_subscription( $user_id, $product->get_id(), $product_limitation );
+	// Map 'active' limitation to include statuses that still grant access.
+	$statuses_to_check = ( 'active' === $product_limitation )
+		? array( 'active', 'on-hold', 'pending-cancel' )
+		: $product_limitation;
+
+	if ( 'no' !== $product_limitation ) {
+		$is_limited_for_user = wcs_user_has_subscription( $user_id, $product->get_id(), $statuses_to_check );
 
 		// If the product is limited for any status, there exists a chance that the customer has cancelled subscriptions which cannot be resubscribed to as they have no completed payments.
 		if ( 'any' === $product_limitation && $is_limited_for_user ) {

@@ -25,6 +25,8 @@ class WC_Subscriptions_Plugin extends WC_Subscriptions_Core_Plugin {
 		WC_Subscriptions_Switcher::init();
 		$this->add_cart_handler( new WCS_Cart_Switch() );
 		WCS_Manual_Renewal_Manager::init();
+
+		( new \Automattic\WooCommerce_Subscriptions\Internal\HealthCheck\Bootstrap() )->register();
 		WCS_Customer_Suspension_Manager::init();
 		WCS_Drip_Downloads_Manager::init();
 		WCS_Zero_Initial_Payment_Checkout_Manager::init();

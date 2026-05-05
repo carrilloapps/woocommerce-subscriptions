@@ -208,7 +208,7 @@ class WCS_Repair_2_0_2 {
 	 * @return string|bool false if the date does not need to be repaired or the new date if it should be repaired
 	 */
 	protected static function check_trial_end_date( $subscription, $former_order_item_meta ) {
-
+		// phpcs:disable QITStandard.PHP.DebugCode.DebugFunctionFound -- we wish to see the type and not just the value
 		$new_trial_end_time = $subscription->get_time( 'trial_end' );
 
 		if ( $new_trial_end_time > 0 ) {
@@ -231,6 +231,7 @@ class WCS_Repair_2_0_2 {
 		WCS_Upgrade_Logger::add( sprintf( 'For subscription %d: repair trial end date = %s.', $subscription->get_id(), var_export( $repair_date, true ) ) );
 
 		return $repair_date;
+		// phpcs:enable
 	}
 
 	/**
@@ -247,6 +248,7 @@ class WCS_Repair_2_0_2 {
 	 * @return string|bool false if the date does not need to be repaired or the new date if it should be repaired
 	 */
 	protected static function check_next_payment_date( $subscription ) {
+		// phpcs:disable QITStandard.PHP.DebugCode.DebugFunctionFound -- we wish to see the type and not just the value
 		global $wpdb;
 
 		// the subscription doesn't have a next payment date set, let's see if it should
@@ -302,6 +304,7 @@ class WCS_Repair_2_0_2 {
 		WCS_Upgrade_Logger::add( sprintf( 'For subscription %d: repair next payment date = %s.', $subscription->get_id(), var_export( $repair_date, true ) ) );
 
 		return $repair_date;
+		// phpcs:enable
 	}
 
 	/**
@@ -317,7 +320,7 @@ class WCS_Repair_2_0_2 {
 	 * @return string|bool false if the date does not need to be repaired or the new date if it should be repaired
 	 */
 	protected static function check_end_date( $subscription, $former_order_item_meta ) {
-
+		// phpcs:disable QITStandard.PHP.DebugCode.DebugFunctionFound -- we wish to see the type and not just the value
 		$new_end_time = $subscription->get_time( 'end' );
 
 		if ( $new_end_time > 0 ) {
@@ -345,6 +348,7 @@ class WCS_Repair_2_0_2 {
 		WCS_Upgrade_Logger::add( sprintf( 'For subscription %d: repair end date = %s.', $subscription->get_id(), var_export( $repair_date, true ) ) );
 
 		return $repair_date;
+		// phpcs:enable
 	}
 
 	/**

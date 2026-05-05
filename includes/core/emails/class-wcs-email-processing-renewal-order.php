@@ -94,7 +94,24 @@ class WCS_Email_Processing_Renewal_Order extends WC_Email_Customer_Processing_Or
 			return;
 		}
 
+		// Let's add the same summary (of downloadable files, if appropriate) that the customer would also have received
+		// after placing the initial (parent) order.
+		add_action( 'woocommerce_subscriptions_email_order_details', array( WC_Emails::instance(), 'order_downloads' ), 5, 4 );
+
+		if ( $this->get_email_type() === 'plain' ) {
+			// Please refer to WC_Subscription::is_download_permitted() to understand why this is needed for plain text emails.
+			add_filter( 'woocommerce_order_is_download_permitted', '__return_true' );
+		}
+
 		$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+
+		// Clean-up: there may be cases (such as WP CLI scripts) where different emails are dispatched in relation to
+		// different orders, so we should avoid accidental contamination.
+		remove_action( 'woocommerce_subscriptions_email_order_details', array( WC_Emails::instance(), 'order_downloads' ) );
+
+		if ( $this->get_email_type() === 'plain' ) {
+			remove_filter( 'woocommerce_order_is_download_permitted', '__return_true' );
+		}
 	}
 
 	/**

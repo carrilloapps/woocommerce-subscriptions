@@ -691,10 +691,13 @@ class WCS_Gifting {
 				if ( ! $order ) {
 					$order = wc_get_order( $subscription->get_parent_id() );
 				}
-				foreach ( $order->get_items() as $order_item ) {
-					if ( $order_item->get_meta( '_wcsg_cart_key' ) === $gifting_subcription_item->get_meta( '_wcsg_cart_key' ) ) {
-						$order_item->add_meta_data( 'wcsg_recipient', 'wcsg_recipient_id_' . $user_id, true );
-						$order_item->save();
+
+				if ( $order ) {
+					foreach ( $order->get_items() as $order_item ) {
+						if ( $order_item->get_meta( '_wcsg_cart_key' ) === $gifting_subcription_item->get_meta( '_wcsg_cart_key' ) ) {
+							$order_item->add_meta_data( 'wcsg_recipient', 'wcsg_recipient_id_' . $user_id, true );
+							$order_item->save();
+						}
 					}
 				}
 			}
@@ -813,6 +816,8 @@ class WCS_Gifting {
 
 	/**
 	 * Register/queue admin scripts.
+	 *
+	 * @deprecated 2.0.0 Use WCSG_Admin::enqueue_scripts() instead.
 	 */
 	public static function admin_scripts() {
 		_deprecated_function( __METHOD__, '2.0.0', 'WCSG_Admin::enqueue_scripts()' );
@@ -820,6 +825,8 @@ class WCS_Gifting {
 
 	/**
 	 * Install wcsg
+	 *
+	 * @deprecated 2.0.0 Use WCS_Gifting::maybe_activate() instead.
 	 */
 	public static function wcsg_install() {
 		_deprecated_function( __METHOD__, '2.0.0', 'WCS_Gifting::maybe_activate()' );
@@ -827,6 +834,8 @@ class WCS_Gifting {
 
 	/**
 	 * Flush rewrite rules if they haven't been flushed since plugin activation
+	 *
+	 * @deprecated 2.0.0 Use flush_rewrite_rules() instead.
 	 */
 	public static function maybe_flush_rewrite_rules() {
 		_deprecated_function( __METHOD__, '2.0.0', 'flush_rewrite_rules()' );
@@ -834,6 +843,8 @@ class WCS_Gifting {
 
 	/**
 	 * Overrides the default recent order template for gifted subscriptions
+	 *
+	 * @deprecated 2.0.0 Use WCSG_Template_Loader::get_recent_orders_template() instead.
 	 *
 	 * @param string $located       Path to template.
 	 * @param string $template_name Template name.

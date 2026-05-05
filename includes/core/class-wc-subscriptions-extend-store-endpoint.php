@@ -338,7 +338,12 @@ class WC_Subscriptions_Extend_Store_Endpoint {
 
 		if ( ! empty( wc()->cart->recurring_carts ) ) {
 			foreach ( wc()->cart->recurring_carts as $cart_key => $cart ) {
-				$cart_item         = current( $cart->cart_contents );
+				$cart_item = current( $cart->cart_contents );
+
+				if ( false === $cart_item ) {
+					continue;
+				}
+
 				$product           = $cart_item['data'];
 				$shipping_packages = self::get_packages_for_recurring_cart( $cart_key, $cart );
 
@@ -393,7 +398,8 @@ class WC_Subscriptions_Extend_Store_Endpoint {
 
 		$standard_packages = WC()->shipping->get_packages();
 
-		if ( ! is_numeric( $package_id ) || key( $standard_packages ) !== (int) $package_id ) {
+		// A null package_id means the rate is being applied to all packages (e.g. local pickup).
+		if ( ! is_null( $package_id ) && ( ! is_numeric( $package_id ) || key( $standard_packages ) !== (int) $package_id ) ) {
 			return;
 		}
 

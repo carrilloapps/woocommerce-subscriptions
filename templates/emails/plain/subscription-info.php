@@ -3,7 +3,7 @@
  * Subscription information template
  *
  * @package WooCommerce_Subscriptions/Templates/Emails
- * @version 7.2.0
+ * @version 8.4.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -31,7 +31,7 @@ foreach ( $subscriptions as $subscription ) {
 	// translators: placeholder is localised end date, or "when cancelled"
 	echo esc_html( sprintf( _x( 'End date: %s', 'in plain emails for subscription information', 'woocommerce-subscriptions' ), $end_date ) ) . "\n";
 	// translators: placeholder is the formatted order total for the subscription
-	echo esc_html( sprintf( _x( 'Recurring price: %s', 'in plain emails for subscription information', 'woocommerce-subscriptions' ), $subscription->get_formatted_order_total() ) );
+	echo esc_html( sprintf( _x( 'Recurring price: %s', 'in plain emails for subscription information', 'woocommerce-subscriptions' ), strip_tags( $subscription->get_formatted_order_total() ) ) );
 
 	if ( $is_parent_order && $subscription->get_time( 'next_payment' ) > 0 ) {
 		echo "\n" . sprintf( esc_html__( 'Next payment: %s', 'woocommerce-subscriptions' ), esc_html( date_i18n( wc_date_format(), $subscription->get_time( 'next_payment', 'site' ) ) ) );

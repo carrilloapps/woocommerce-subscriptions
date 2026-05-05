@@ -297,7 +297,8 @@ class WCS_Filter_Deprecator extends WCS_Hook_Deprecator {
 			// Old arg spec: $subscriptions (array of arrays), $user_id
 			case 'woocommerce_users_subscriptions':
 
-				// For this hook, the old return value is incompatible with the new return value, so we will trigger another, more urgent notice
+				// For this hook, the old return value is incompatible with the new return value, so we will trigger another, more urgent notice.
+				// phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Use of trigger_error() is acceptable when supporting deprecations.
 				trigger_error( 'Callbacks on the "woocommerce_users_subscriptions" filter must be updated immediately. Attach callbacks to the new "wcs_get_users_subscriptions" filter instead. Since version 2.0 of WooCommerce Subscriptions, the "woocommerce_users_subscriptions" filter does not affect the list of a user\'s subscriptions as the subscription data structure has changed.' );
 
 				// But still trigger the old hook, even if we can't map the old data to the new return value
